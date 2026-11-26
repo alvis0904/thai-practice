@@ -1,10 +1,10 @@
 // 離線快取。每次發布新版請把 VERSION 加一。
-const VERSION = 'thai-v1.1.0';
+const VERSION = 'thai-v1.2.0';
 const SHELL = [
   './', './index.html', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png',
   './fonts/noto-sans-thai-looped-thai-400-normal.woff2', './fonts/noto-sans-thai-looped-thai-600-normal.woff2',
-  './fonts/noto-sans-thai-looped-thai-700-normal.woff2', './fonts/noto-sans-thai-thai-600-normal.woff2'
+  './fonts/noto-sans-thai-looped-thai-700-normal.woff2', './fonts/kanit-thai-500-normal.woff2'
 ];
 self.addEventListener('install', e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => {

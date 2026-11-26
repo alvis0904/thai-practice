@@ -14,15 +14,15 @@
 @font-face{font-family:'Noto Sans Thai Looped';font-weight:400;font-display:swap;src:url(fonts/noto-sans-thai-looped-thai-400-normal.woff2) format('woff2')}
 @font-face{font-family:'Noto Sans Thai Looped';font-weight:600;font-display:swap;src:url(fonts/noto-sans-thai-looped-thai-600-normal.woff2) format('woff2')}
 @font-face{font-family:'Noto Sans Thai Looped';font-weight:700;font-display:swap;src:url(fonts/noto-sans-thai-looped-thai-700-normal.woff2) format('woff2')}
-@font-face{font-family:'Noto Sans Thai';font-weight:600;font-display:swap;src:url(fonts/noto-sans-thai-thai-600-normal.woff2) format('woff2')}
+@font-face{font-family:'Kanit';font-weight:500;font-display:swap;src:url(fonts/kanit-thai-500-normal.woff2) format('woff2')}
 /* Layout: one narrow phone column, one task per screen, thumb-reach buttons at the bottom */
 :root{
   --bg:#FAF7F2; --surface:#FFFFFF; --line:#E6E0D6; --fg:#2B2B2B; --muted:#5E5A55; --soft:#EDE7DD;
   --mid:#2F6FDB; --high:#C2541A; --high-bar:#E8743B; --low:#6B4FBB; --vowel:#6B6B6B; --tone:#D6336C;
   --ok:#2E9E6A; --ok-bg:#E3F4EB; --warn:#D99A1E; --warn-bg:#FFF4DE; --warn-fg:#5A3E00; --on-accent:#FFFFFF;
   --font-ui:'Noto Sans TC','Noto Sans CJK TC','PingFang TC','Microsoft JhengHei',system-ui,sans-serif;
-  --font-th:'Noto Sans Thai Looped','Noto Sans Thai',Tahoma,sans-serif;
-  --font-sign:'Noto Sans Thai',Tahoma,sans-serif;
+  --font-th:'Noto Sans Thai Looped',Tahoma,sans-serif;
+  --font-sign:'Kanit',sans-serif;
   color-scheme:light;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
@@ -124,6 +124,11 @@ button:focus-visible{outline:3px solid var(--mid);outline-offset:2px}
 canvas.trace{width:100%;max-width:320px;aspect-ratio:1;align-self:center;border:1px solid var(--line);border-radius:16px;background:var(--surface);touch-action:none}
 .note{background:var(--warn-bg);color:var(--warn-fg);border-radius:14px;padding:12px 14px;font-size:14px}
 .hide-roman{filter:blur(4px)}
+.sign{font-family:var(--font-sign)!important;font-weight:500!important}
+.memo{display:flex;align-items:center;gap:12px}
+.emo{font-size:40px;line-height:1;flex:none}
+.exrow{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 10px}
+.exrow .grow,.grow{flex:1;min-width:0}
 .recall{border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:12px;display:flex;align-items:center;gap:12px;text-align:left;min-height:64px}
 .recall .t{font-family:var(--font-th);font-size:30px;font-weight:600;min-width:72px;text-align:center}
 .recall .ans{flex:1;min-width:0}
@@ -138,7 +143,7 @@ table.rules td,table.rules th{border-bottom:1px solid var(--line);padding:6px 4p
 
 <script>
 'use strict';
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
 /* =========================================================
    1. 泰文資料
    ========================================================= */
@@ -151,7 +156,7 @@ const TONES = {
   R:{n:'升調',hint:'≈ 完整國語三聲',d:'̌'}
 };
 const CLS = {mid:'中子音',high:'高子音',low:'低子音'};
-// [字母, 類別, 拼音, 英文錨點, 字母名, 中文, 常用?]
+// [字母, 類別, 拼音, 英文錨點, 課本字母名, 中文, 常用?]
 const CONS_RAW = [
  ['ก','mid','g','skin 的 k（不送氣）','ไก่','雞',1],
  ['จ','mid','j','介於 jet 的 j 與 ch 之間（不送氣）','จาน','盤子',1],
@@ -159,7 +164,7 @@ const CONS_RAW = [
  ['ต','mid','dt','stop 的 t（不送氣）','เต่า','烏龜',1],
  ['บ','mid','b','boy 的 b（濁音）','ใบไม้','葉子',1],
  ['ป','mid','bp','spin 的 p（不送氣）','ปลา','魚',1],
- ['อ','mid','','喉塞音，像 uh-oh 中間那一頓（拼音不寫）','อ่าง','盆',1],
+ ['อ','mid','','不發音，用來承載母音','อ่าง','盆',1],
  ['ฎ','mid','d','同 ด（少用）','ชฎา','頭冠',0],
  ['ฏ','mid','dt','同 ต（少用）','ปฏัก','刺棒',0],
  ['ข','high','k','kite 的 k（送氣）','ไข่','蛋',1],
@@ -168,8 +173,8 @@ const CONS_RAW = [
  ['ถ','high','t','top 的 t（送氣）','ถุง','袋子',1],
  ['ผ','high','p','pin 的 p（送氣）','ผึ้ง','蜜蜂',1],
  ['ฝ','high','f','fan 的 f','ฝา','蓋子',1],
- ['ศ','high','s','sun 的 s（常見於 ประเทศ）','ศาลา','涼亭',1],
- ['ษ','high','s','sun 的 s（常見於 ภาษา）','ฤๅษี','隱士',1],
+ ['ศ','high','s','sun 的 s','ศาลา','涼亭',1],
+ ['ษ','high','s','sun 的 s','ฤๅษี','隱士',1],
  ['ส','high','s','sun 的 s','เสือ','老虎',1],
  ['ห','high','h','hat 的 h','หีบ','箱子',1],
  ['ค','low','k','kite 的 k（送氣）','ควาย','水牛',1],
@@ -183,11 +188,11 @@ const CONS_RAW = [
  ['ฒ','low','t','top 的 t（少用）','ผู้เฒ่า','老人',0],
  ['ณ','low','n','net 的 n（少用）','เณร','小沙彌',0],
  ['ท','low','t','top 的 t（送氣）','ทหาร','士兵',1],
- ['ธ','low','t','top 的 t（常見於 ธง）','ธง','旗子',1],
+ ['ธ','low','t','top 的 t','ธง','旗子',1],
  ['น','low','n','net 的 n','หนู','老鼠',1],
  ['พ','low','p','pin 的 p（送氣）','พาน','托盤',1],
  ['ฟ','low','f','fan 的 f','ฟัน','牙齒',1],
- ['ภ','low','p','pin 的 p（常見於 ภาษา）','สำเภา','帆船',1],
+ ['ภ','low','p','pin 的 p','สำเภา','帆船',1],
  ['ม','low','m','man 的 m','ม้า','馬',1],
  ['ย','low','y','yes 的 y','ยักษ์','巨人',1],
  ['ร','low','r','彈舌 r（口語常念成 l）','เรือ','船',1],
@@ -196,14 +201,27 @@ const CONS_RAW = [
  ['ฬ','low','l','love 的 l（少用）','จุฬา','風箏',0],
  ['ฮ','low','h','hat 的 h','นกฮูก','貓頭鷹',1]
 ];
-const CONS = CONS_RAW.map(a=>({id:'c:'+a[0],ch:a[0],cls:a[1],r:a[2],anchor:a[3],name:a[4],nameZh:a[5],freq:!!a[6],kind:'c'}));
+// 記憶詞：[泰文詞, 拼音, 中文, emoji]；課本詞常用又有 emoji 的直接沿用
+const MEMO = {
+ 'ก':['ไก่','gài','雞','🐔'],'จ':['จาน','jaan','盤子','🍽️'],'ด':['เด็ก','dèk','小孩','🧒'],'ต':['เต่า','dtào','烏龜','🐢'],
+ 'บ':['ใบไม้','bai-máai','葉子','🍃'],'ป':['ปลา','bplaa','魚','🐟'],'อ':['อ่าง','àang','盆','🛁'],'ฎ':['ชฎา','chá-daa','頭冠','👑'],
+ 'ฏ':['ปฏิทิน','bpà-tì-tin','月曆','📅'],
+ 'ข':['ไข่','kài','蛋','🥚'],'ฉ':['ฉลาม','chà-lǎam','鯊魚','🦈'],'ฐ':['ฐาน','tǎan','基座',''],'ถ':['ถุง','tǔng','袋子','🛍️'],
+ 'ผ':['ผึ้ง','pʉ̂ng','蜜蜂','🐝'],'ฝ':['ฝน','fǒn','雨','🌧️'],'ศ':['ศิลปะ','sǐn-lá-bpà','藝術','🎨'],'ษ':['ภาษา','paa-sǎa','語言（ษ 在字中）','💬'],
+ 'ส':['เสือ','sʉ̌a','老虎','🐯'],'ห':['หัวใจ','hǔa-jai','心','❤️'],
+ 'ค':['ควาย','kwaai','水牛','🐃'],'ฆ':['ระฆัง','rá-kang','鐘','🔔'],'ง':['งู','nguu','蛇','🐍'],'ช':['ช้าง','cháang','大象','🐘'],
+ 'ซ':['โซ่','sôo','鏈子','⛓️'],'ฌ':['เฌอ','chəə','樹',''],'ญ':['หญิง','yǐng','女人','👩'],'ฑ':['กรีฑา','gree-taa','田徑','🏃'],
+ 'ฒ':['ผู้เฒ่า','pûu-tâo','老人','👴'],'ณ':['คุณ','kun','你（ณ 在字尾）','🙋'],'ท':['ทหาร','tá-hǎan','士兵','💂'],'ธ':['ธง','tong','旗子','🚩'],
+ 'น':['หนู','nǔu','老鼠','🐭'],'พ':['พริก','prík','辣椒','🌶️'],'ฟ':['ฟัน','fan','牙齒','🦷'],'ภ':['ภูเขา','puu-kǎo','山','⛰️'],
+ 'ม':['ม้า','máa','馬','🐎'],'ย':['ยักษ์','yák','巨人','👹'],'ร':['เรือ','rʉa','船','⛵'],'ล':['ลิง','ling','猴子','🐒'],
+ 'ว':['แหวน','wɛ̌ɛn','戒指','💍'],'ฬ':['กีฬา','gii-laa','運動（ฬ 在字中）','⚽'],'ฮ':['นกฮูก','nók-hûuk','貓頭鷹','🦉']
+};
+const CONS = CONS_RAW.map(a=>({id:'c:'+a[0],ch:a[0],cls:a[1],r:a[2],anchor:a[3],name:a[4],nameZh:a[5],freq:!!a[6],kind:'c',memo:MEMO[a[0]]}));
 const CMAP = Object.fromEntries(CONS.map(c=>[c.ch,c]));
 const LOOKALIKE = ['บปษ','ดตค','ผฝพฟ','ถภฎฏ','ขชซ','มนฆ','วร','อฮ','ทฑ','ลส','ศสห','ฉณ','ยฝ','งจ','กถ'];
 const LOW_A = ['ค','ช','ซ','ท','ธ','พ','ฟ','ภ','ฮ'], LOW_A_RARE = ['ฆ','ฌ','ฑ','ฒ'];
 const LOW_B = ['ง','น','ม','ย','ร','ล','ว'], LOW_B_RARE = ['ญ','ณ','ฬ'];
-// 招牌字（無頭圈）長得像英文字母的陷阱
 const FALSE_FRIEND = {'ก':'招牌字像英文 n，但念 g','ร':'招牌字像英文 S，但念 r','น':'招牌字像英文 u，但念 n','บ':'招牌字像英文 U，但念 b'};
-// 發音部位（對照注音的排列順序）
 const PLACE = [
  ['嘴唇','ㄅㄆㄇㄈ',['b','bp','p','f','m','w']],
  ['舌尖','ㄉㄊㄋㄌㄙ',['d','dt','t','n','l','r','s']],
@@ -212,11 +230,11 @@ const PLACE = [
  ['喉嚨','ㄏ',['h','']]
 ];
 
-// 母音模板：C=子音位置，T=聲調符號位置
+// 母音模板：C=子音位置，T=聲調符號位置。字母線一律用 อ 搭配
 const VOW_RAW = [
  ['a','Cะ','a','CTา','aa','短音加 ะ；長音用 า'],
  ['i','Cิ','i','CีT','ii','ี 比 ิ 多一條直線 ＝ 長音'],
- ['ʉ','Cึ','ʉ','CืTอ','ʉʉ','ื 比 ึ 多一條直線 ＝ 長音；開音節的長音後面加 อ'],
+ ['ʉ','Cึ','ʉ','CืTอ','ʉʉ','ื 比 ึ 多一條直線 ＝ 長音；長音後面加 อ'],
  ['u','Cุ','u','CูT','uu','ู 比 ุ 多一條尾巴 ＝ 長音'],
  ['e','เCะ','e','เCT','ee','長音 เ◌，後面加 ะ 變短音'],
  ['ɛ','แCะ','ɛ','แCT','ɛɛ','長音 แ◌（兩個 เ），加 ะ 變短音'],
@@ -236,11 +254,63 @@ VOW_RAW.forEach(a=>{
  ['ai2','ไCT','ai','ไ（ไม้มลาย）最常用的 ai'],
  ['ao','เCTา','ao','เ＋า ＝ ao，像國語「凹」'],
  ['am','CTำ','am','ำ ＝ 小圓圈（m）＋ า，念 am']].forEach(a=>{
-  VOWELS.push({id:'v:'+a[0],kind:'v',tpl:a[1],r:a[2],len:'U',pair:null,logic:a[3]+'。是短音，但結尾是 i／o／m 會延續，所以算活音。',stage:'S6'});
+  VOWELS.push({id:'v:'+a[0],kind:'v',tpl:a[1],r:a[2],len:'U',pair:null,logic:a[3],stage:'S6'});
 });
 const VMAP = Object.fromEntries(VOWELS.map(v=>[v.id,v]));
-const vForm = v => v.tpl.replace('C','◌').replace('T','');
-const CARRIER = ['v:a-l','v:ɔ-l']; // 子音階段的載體母音 า、อ
+const vForm = v => v.tpl.replace('C','อ').replace('T','');
+const fixMarks = t => String(t).replace(/(^|[^\u0E01-\u0E2E])([\u0E31\u0E34-\u0E3A\u0E47-\u0E4E])/g,'$1\u25CC$2'); // 單獨的母音符號前補 ◌，避免顯示成方框      // อ 搭配，母音保持原音
+const vSay = v => 'สระ'+vForm(v);                                 // 念母音名稱，語音引擎念得準
+const CARRIER = ['v:a-l','v:ɔ-l'];
+
+// 尾音：[代號, 顯示, 活/死, 字母, 例字]
+const FINALS = [
+ ['k','-k','D',['ก','ข','ค','ฆ'],['นก','nók','鳥','🐦']],
+ ['t','-t','D',['ด','ต','จ','ช','ซ','ถ','ท','ธ','ศ','ษ','ส','ฎ','ฏ','ฐ','ฑ','ฒ'],['รถ','rót','車','🚗']],
+ ['p','-p','D',['บ','ป','พ','ฟ','ภ'],['ชอบ','chɔ̂ɔp','喜歡','👍']],
+ ['n','-n','L',['น','ร','ล','ญ','ณ','ฬ'],['อาหาร','aa-hǎan','食物','🍲']],
+ ['m','-m','L',['ม'],['ผม','pǒm','我／頭髮','💇']],
+ ['ng','-ng','L',['ง'],['ร้อง','rɔ́ɔng','唱歌','🎤']],
+ ['i','-i','L',['ย'],['สวย','sǔai','漂亮','✨']],
+ ['o','-o','L',['ว'],['แมว','mɛɛo','貓','🐈']]
+].map(a=>({id:'f:'+a[0],kind:'f',code:a[0],show:a[1],live:a[2]==='L',letters:a[3],ex:a[4],stage:'S7'}));
+const FMAP = Object.fromEntries(FINALS.map(f=>[f.id,f]));
+const NEVER_FINAL = 'ฉ ผ ฝ ห ฮ ฌ';
+
+// 聲調練習用的真實單字：[泰文, 拼音, 中文, 起首子音類別, 音節種類 L=活音/DS=死音短/DL=死音長, 聲調符號, 聲調]
+const TWORDS = [
+ ['ดี','dii','好','mid','L','','M'],['จาน','jaan','盤子','mid','L','','M'],['กิน','gin','吃','mid','L','','M'],['ปลา','bplaa','魚','mid','L','','M'],
+ ['มา','maa','來','low','L','','M'],['คน','kon','人','low','L','','M'],['ไทย','tai','泰','low','L','','M'],['ชา','chaa','茶','low','L','','M'],
+ ['ขา','kǎa','腿','high','L','','R'],['สอง','sɔ̌ɔng','二','high','L','','R'],['เสือ','sʉ̌a','老虎','high','L','','R'],['สวย','sǔai','漂亮','high','L','','R'],['ผม','pǒm','我（男性）','high','L','','R'],
+ ['นก','nók','鳥','low','DS','','H'],['รถ','rót','車','low','DS','','H'],['พบ','póp','遇見','low','DS','','H'],
+ ['มาก','mâak','很','low','DL','','F'],['ชอบ','chɔ̂ɔp','喜歡','low','DL','','F'],['ลูก','lûuk','孩子','low','DL','','F'],
+ ['จาก','jàak','從','mid','DL','','L'],['ปิด','bpìt','關','mid','DS','','L'],['เด็ก','dèk','小孩','mid','DS','','L'],
+ ['สิบ','sìp','十','high','DS','','L'],['ขับ','kàp','開（車）','high','DS','','L'],['ถูก','tùuk','便宜','high','DL','','L'],
+ ['ไก่','gài','雞','mid','L','่','L'],['ป่า','bpàa','森林','mid','L','่','L'],['บ้าน','bâan','家','mid','L','้','F'],
+ ['โต๊ะ','dtó','桌子','mid','DS','๊','H'],['จ๋า','jǎa','（親切的應答）','mid','L','๋','R'],
+ ['ไข่','kài','蛋','high','L','่','L'],['ข้าว','kâao','米飯','high','L','้','F'],['ห้า','hâa','五','high','L','้','F'],
+ ['ไม่','mâi','不','low','L','่','F'],['แม่','mɛ̂ɛ','媽媽','low','L','่','F'],['พ่อ','pɔ̂ɔ','爸爸','low','L','่','F'],
+ ['ม้า','máa','馬','low','L','้','H'],['ช้าง','cháang','大象','low','L','้','H'],['ร้อน','rɔ́ɔn','熱','low','L','้','H']
+].map(a=>({th:a[0],r:a[1],zh:a[2],cls:a[3],kind:a[4],mark:a[5],tone:a[6]}));
+const KIND = {L:'活音',DS:'死音・短母音',DL:'死音・長母音＋尾音 k t p'};
+function ruleOf(cls,kind,mark){
+  if(mark) return 'tr:mark-'+cls;
+  if(kind==='L') return 'tr:'+cls+'-live';
+  if(cls==='low') return kind==='DS'?'tr:low-dead-s':'tr:low-dead-l';
+  return 'tr:'+cls+'-dead';
+}
+const RULES = {
+ 'tr:mid-live':{stage:'T2',t:'中子音＋活音、無符號 → 中平調'},
+ 'tr:high-live':{stage:'T2',t:'高子音＋活音、無符號 → 升調'},
+ 'tr:low-live':{stage:'T2',t:'低子音＋活音、無符號 → 中平調'},
+ 'tr:mid-dead':{stage:'T3',t:'中子音＋死音 → 低調'},
+ 'tr:high-dead':{stage:'T3',t:'高子音＋死音 → 低調'},
+ 'tr:low-dead-s':{stage:'T3',t:'低子音＋死音（短母音）→ 高調'},
+ 'tr:low-dead-l':{stage:'T3',t:'低子音＋死音（長母音＋尾音 k t p）→ 降調'},
+ 'tr:mark-mid':{stage:'T4',t:'中子音：่ 低調、้ 降調、๊ 高調、๋ 升調'},
+ 'tr:mark-high':{stage:'T4',t:'高子音：่ 低調、้ 降調'},
+ 'tr:mark-low':{stage:'T4',t:'低子音：่ 降調、้ 高調（比中子音升一級）'},
+ 'tr:mix':{stage:'T5',t:'綜合推理：類別 → 活音或死音 → 聲調符號 → 聲調'}
+};
 
 const PAIRS = [
  [['ไกล','glai','遠'],['ใกล้','glâi','近']],
@@ -253,7 +323,7 @@ const PAIRS = [
  [['ใหม่','mài','新的'],['ไหม','mǎi','嗎（問句）']],
  [['เขา','kǎo','他'],['ข้าว','kâao','米飯']],
  [['ดี','dii','好'],['ดิ','dì','（語氣詞）']]
-].map((p,i)=>({id:'p:'+i,kind:'p',a:p[0],b:p[1],stage:'S5'}));
+].map((p,i)=>({id:'p:'+i,kind:'p',a:p[0],b:p[1],stage:'T5'}));
 
 /* ---------- 會話詞彙 ---------- */
 const VOCAB_RAW = [
@@ -290,24 +360,34 @@ const NOUN_ADJ = [
 
 /* ---------- 階段 ---------- */
 const cid = arr => arr.map(ch=>'c:'+ch);
+const TONE_ITEMS = ['M','L','F','H','R'].map(k=>({id:'tn:'+k,kind:'tn',tone:k,stage:'T1'}));
+const RULE_ITEMS = Object.entries(RULES).map(([id,r])=>({id,kind:'tr',stage:r.stage,text:r.t}));
+const passed = id => !!(S.stages[id] && S.stages[id].passed);
 const STAGES = [
- {id:'S1',line:'L',name:'中子音',desc:'7 個常用中子音，搭配載體母音 า、อ',items:()=>cid(['ก','จ','ด','ต','บ','ป','อ']),all:()=>cid(['ก','จ','ด','ต','บ','ป','อ','ฎ','ฏ'])},
- {id:'S2',line:'L',name:'高子音',desc:'9 個常用高子音，多數有低子音雙胞胎',items:()=>cid(['ข','ฉ','ถ','ผ','ฝ','ศ','ษ','ส','ห']),all:()=>cid(['ข','ฉ','ถ','ผ','ฝ','ศ','ษ','ส','ห','ฐ'])},
- {id:'S3',line:'L',name:'低子音 A：雙胞胎',desc:'和高子音同音、只差聲調的低子音',items:()=>cid(LOW_A),all:()=>cid(LOW_A.concat(LOW_A_RARE))},
- {id:'S4',line:'L',name:'低子音 B：獨立低子音',desc:'沒有高子音雙胞胎，都是可以拉長的音',items:()=>cid(LOW_B),all:()=>cid(LOW_B.concat(LOW_B_RARE))},
- {id:'S5',line:'L',name:'配對母音',desc:'12 組長短母音＋最小差異聽辨',items:()=>VOWELS.filter(v=>v.stage==='S5').map(v=>v.id).concat(PAIRS.map(p=>p.id)),all:()=>VOWELS.filter(v=>v.stage==='S5').map(v=>v.id)},
- {id:'S6',line:'L',name:'不配對母音',desc:'ใ ไ เ◌า ◌ำ',items:()=>VOWELS.filter(v=>v.stage==='S6').map(v=>v.id),all:()=>VOWELS.filter(v=>v.stage==='S6').map(v=>v.id)},
+ {id:'S1',line:'L',name:'中子音',desc:'7 個常用中子音',items:()=>cid(['ก','จ','ด','ต','บ','ป','อ']),all:()=>cid(['ก','จ','ด','ต','บ','ป','อ','ฎ','ฏ'])},
+ {id:'S2',line:'L',name:'高子音',desc:'9 個常用高子音',items:()=>cid(['ข','ฉ','ถ','ผ','ฝ','ศ','ษ','ส','ห']),all:()=>cid(['ข','ฉ','ถ','ผ','ฝ','ศ','ษ','ส','ห','ฐ'])},
+ {id:'S3',line:'L',name:'低子音 A：雙胞胎',desc:'和高子音同音的低子音',items:()=>cid(LOW_A),all:()=>cid(LOW_A.concat(LOW_A_RARE))},
+ {id:'S4',line:'L',name:'低子音 B：獨立低子音',desc:'沒有高子音雙胞胎的低子音',items:()=>cid(LOW_B),all:()=>cid(LOW_B.concat(LOW_B_RARE))},
+ {id:'S5',line:'L',name:'配對母音',desc:'12 組長短母音',items:()=>VOWELS.filter(v=>v.stage==='S5').map(v=>v.id),all:()=>VOWELS.filter(v=>v.stage==='S5').map(v=>v.id)},
+ {id:'S6',line:'L',name:'不配對母音',desc:'ใ ไ เอา อำ',items:()=>VOWELS.filter(v=>v.stage==='S6').map(v=>v.id),all:()=>VOWELS.filter(v=>v.stage==='S6').map(v=>v.id)},
+ {id:'S7',line:'L',name:'尾音',desc:'字尾只有 8 個音',items:()=>FINALS.map(f=>f.id),all:()=>FINALS.map(f=>f.id)},
+ {id:'T1',line:'T',name:'聽懂 5 個聲調',desc:'用真實單字練聽辨',req:()=>true,reqTxt:'',items:()=>TONE_ITEMS.map(t=>t.id)},
+ {id:'T2',line:'T',name:'預設聲調（活音）',desc:'子音類別決定聲調',req:()=>passed('S4'),reqTxt:'字母線「低子音 B」過關後開放',items:()=>RULE_ITEMS.filter(r=>r.stage==='T2').map(r=>r.id)},
+ {id:'T3',line:'T',name:'死音',desc:'短母音、尾音 k t p 改變聲調',req:()=>passed('S7')&&passed('T2'),reqTxt:'字母線「尾音」與 T2 過關後開放',items:()=>RULE_ITEMS.filter(r=>r.stage==='T3').map(r=>r.id)},
+ {id:'T4',line:'T',name:'聲調符號',desc:'่ ้ ๊ ๋',req:()=>passed('T3'),reqTxt:'T3 過關後開放',items:()=>RULE_ITEMS.filter(r=>r.stage==='T4').map(r=>r.id)},
+ {id:'T5',line:'T',name:'綜合與最小差異',desc:'推理＋只差一點的字',req:()=>passed('T4'),reqTxt:'T4 過關後開放',items:()=>['tr:mix'].concat(PAIRS.map(p=>p.id))},
  {id:'C1',line:'C',name:'問候與禮貌',desc:'你好、謝謝、對不起、沒關係',items:()=>VOCAB.filter(w=>w.stage==='C1').map(w=>w.id)},
  {id:'C2',line:'C',name:'好不好、是不是',desc:'X ไหม？／X／ไม่ X／ไม่ค่อย X',items:()=>VOCAB.filter(w=>w.stage==='C2').map(w=>w.id)},
  {id:'C3',line:'C',name:'自我介紹與國籍',desc:'我是台灣人、你從哪裡來？',items:()=>VOCAB.filter(w=>w.stage==='C3').map(w=>w.id)}
 ];
+const LINES = {L:'字母線',T:'聲調線',C:'會話線'};
 const SMAP = Object.fromEntries(STAGES.map(s=>[s.id,s]));
-const ITEM = {}; CONS.forEach(x=>ITEM[x.id]=x); VOWELS.forEach(x=>ITEM[x.id]=x); PAIRS.forEach(x=>ITEM[x.id]=x); VOCAB.forEach(x=>ITEM[x.id]=x);
-STAGES.filter(s=>s.line==='L').forEach(s=>s.all().forEach(id=>{ if(ITEM[id].kind==='c') ITEM[id].stage=s.id; }));
-ITEM['r:tone']={id:'r:tone',kind:'r',stage:'S1'};
+const ITEM = {};
+[CONS,VOWELS,PAIRS,VOCAB,FINALS,TONE_ITEMS,RULE_ITEMS].forEach(list=>list.forEach(x=>ITEM[x.id]=x));
+STAGES.filter(s=>s.line==='L' && s.id<'S5').forEach(s=>s.all().forEach(id=>{ ITEM[id].stage=s.id; }));
 
 /* =========================================================
-   2. 規則：音節組合、聲調推算、拼音
+   2. 規則：音節組合、聲調推算
    ========================================================= */
 function makeSyl(c,v,t){
   const th = v.tpl.replace('C',c.ch).replace('T',t||'');
@@ -317,23 +397,12 @@ function makeSyl(c,v,t){
   else if(c.cls==='high') tone = !t?(live?'R':'L'):({'่':'L','้':'F'})[t];
   else tone = !t?(live?'M':(v.len==='L'?'F':'H')):({'่':'F','้':'H'})[t];
   const roman = c.r + v.r.charAt(0) + TONES[tone].d + v.r.slice(1);
-  return {c,v,t:t||'',th,live,tone,roman:roman.normalize('NFC')};
+  return {th,cls:c.cls,kind:live?'L':'DS',mark:t||'',tone,r:roman.normalize('NFC'),c,v,practice:true};
 }
 function toneMarksFor(c,v){ if(v.len==='S') return ['']; return c.cls==='mid'?['','่','้','๊','๋']:['','่','้']; }
-function explainSyl(s){
-  const cc = s.c.cls, cl = CLS[cc];
-  const lenTxt = s.v.len==='L'?'長母音 → 活音':s.v.len==='S'?'短母音 → 死音':'不配對母音 → 活音';
-  let rule;
-  if(!s.t){
-    if(cc==='mid') rule = s.live?'中子音＋活音、無符號 ＝ 中平調':'中子音＋死音 ＝ 低調';
-    else if(cc==='high') rule = s.live?'高子音＋活音、無符號 ＝ 升調':'高子音＋死音 ＝ 低調';
-    else rule = s.live?'低子音＋活音、無符號 ＝ 中平調':'低子音＋短音死音 ＝ 高調';
-  } else {
-    const m = s.t==='่'?'่':s.t==='้'?'้':s.t==='๊'?'๊':'๋';
-    rule = `${cl}＋${m} ＝ ${TONES[s.tone].n}`;
-    if(cc==='low') rule += '（低子音的符號會「升一級」：่→降調、้→高調）';
-  }
-  return `<span class="c-${cc}">${cl}</span> → ${lenTxt} → ${s.t?'符號 <span class="c-tone">'+TM[s.t]+'</span>':'無符號'} → <b>${TONES[s.tone].n}</b>（${TONES[s.tone].hint}）<br><span class="small muted">${rule}</span>`;
+function explainRule(w){
+  const cl=CLS[w.cls], rule=RULES[ruleOf(w.cls,w.kind,w.mark)];
+  return `<span class="c-${w.cls}">${cl}</span> → ${KIND[w.kind]} → ${w.mark?'符號 <span class="c-tone">'+TM[w.mark]+'</span>':'無符號'} → <b>${TONES[w.tone].n}</b>（${TONES[w.tone].hint}）<br><span class="small muted">規則：${rule?rule.t:''}</span>`;
 }
 
 /* =========================================================
@@ -363,6 +432,7 @@ let lastSpeakErr = '';
 function loadVoice(){ try{ const vs = speechSynthesis.getVoices(); thaiVoice = vs.find(v=>/^th/i.test(v.lang)) || null; }catch(e){} }
 try{ if(TTS_OK){ loadVoice(); speechSynthesis.onvoiceschanged = loadVoice; } }catch(e){}
 function say(text,rate){
+  if(!text) return;
   if(!TTS_OK){ lastSpeakErr='unsupported'; showTtsBanner(); return; }
   try{
     loadVoice();
@@ -387,18 +457,26 @@ function showTtsBanner(){
   if(!b){ b=document.createElement('div'); b.id='ttsb'; b.className='note'; b.setAttribute('role','status'); $app.prepend(b); }
   b.innerHTML = '<b>聽不到聲音？</b><br>'+ttsHelp();
 }
-const consSound = c => c.ch+'อ';
+const consSound = c => c.ch+'อ '+c.name;       // 念完整字母名稱，例如「ตอ เต่า」
 const quiet = () => !!S.settings.quiet;
+function itemSound(it){
+  if(!it) return '';
+  if(it.kind==='c') return consSound(it);
+  if(it.kind==='v') return vSay(it);
+  if(it.kind==='w') return it.th==='Alvis'?'':it.th;
+  if(it.kind==='f') return it.ex[0];
+  if(it.kind==='p') return it.a[0];
+  return '';
+}
 
 /* =========================================================
-   4. 進度保存（帳號私人資料＋本機備份）
+   4. 進度保存（手機本機＋匯出備份）
    ========================================================= */
-const S0 = () => ({v:2,items:{},stages:{},days:{},errors:[],skipped:[],settings:{rate:0.8,night:'auto',quiet:false},onboarded:false});
+const S0 = () => ({v:3,items:{},stages:{},days:{},errors:[],skipped:[],settings:{rate:0.8,night:'auto',quiet:false},onboarded:false});
 function normalize(x){
   if(!x || typeof x!=='object') return S0();
   const s = Object.assign(S0(), JSON.parse(JSON.stringify(x)));
   if((x.v||1)<2){
-    // v1 → v2：階段重新排序（低子音拆兩張、母音移到子音之後）
     const old = x.stages||{}, ns={};
     const cp=(o,n)=>{ if(old[o]) ns[n]=Object.assign(ns[n]||{},{passed:!!old[o].passed,introSeen:!!old[o].introSeen,mapSeen:!!old[o].passed,best:old[o].best||0}); };
     cp('S1','S1'); cp('S2','S2'); cp('S5','S3'); cp('S5','S4'); cp('S3','S5'); cp('S4','S6'); ['C1','C2','C3'].forEach(k=>cp(k,k));
@@ -407,10 +485,15 @@ function normalize(x){
     Object.entries(x.days||{}).forEach(([k,d])=>{ const sec=d&&d.sec?Object.values(d.sec).reduce((a,b)=>a+b,0):0; nd[k]={night:sec,test:0}; });
     s.days = nd;
     Object.values(s.items).forEach(it=>{ if(it.seen>0 && !it.introDay) it.introDay='2000-01-01'; });
-    s.v = 2;
   }
+  if((x.v||1)<3){
+    // v1.2：字母卡改版，字母地圖要重新看一次；舊的「聲調規則」項目不再使用
+    ['S1','S2','S3','S4','S5','S6'].forEach(k=>{ if(s.stages[k]) s.stages[k].mapSeen=false; });
+    delete s.items['r:tone'];
+  }
+  s.v = 3;
   s.settings = Object.assign({rate:0.8,night:'auto',quiet:false}, s.settings||{});
-  s.skipped = Array.isArray(s.skipped)?s.skipped:[];
+  s.skipped = Array.isArray(s.skipped)?s.skipped.filter(id=>id!=='r:tone'):[];
   return s;
 }
 let S = S0();
@@ -442,8 +525,9 @@ function dayRec(k=dayKey()){
   const d = S.days[k] || (S.days[k]={});
   return Object.assign(d, Object.assign({night:0,test:0,rounds:0,newIds:[],relearnIds:[],testWrong:[],tested:[],relearnDone:false,recallDone:false,testDone:false,testRight:0,testTotal:0}, d));
 }
-const CAT = {class:'子音類別記錯',length:'長短音',tone:'聲調推算',shape:'形近字',sound:'聽辨',order:'句子順序',vocab:'單字意思',read:'認讀',sign:'招牌字體'};
+const CAT = {class:'子音類別記錯',length:'長短音',tone:'聲調推算',shape:'形近字',sound:'聽辨',order:'句子順序',vocab:'單字意思',read:'認讀',sign:'招牌字體',final:'尾音',tonehear:'聽聲調'};
 function record(id,ok,qtype,cat){
+  if(!ITEM[id]) return;
   const s = st(id), today=dayKey(), d=dayRec();
   s.seen = Math.max(1, s.seen+1);
   if(!s.introDay) s.introDay = today;
@@ -455,7 +539,7 @@ function record(id,ok,qtype,cat){
     if(!s.okTypes.includes(qtype)) s.okTypes.push(qtype);
     if(s.l===0) s.l=1;
     else if(s.l===1 && s.okDays.length>=2 && s.okTypes.length>=2) s.l=2;
-    else if(s.l===2 && s.lastOk && diffDays(s.lastOk,today)>=7 && ['reason','listen','pair','drill','sign'].includes(qtype)) s.l=3;
+    else if(s.l===2 && s.lastOk && diffDays(s.lastOk,today)>=7 && ['reason','listen','pair','drill','sign','spell','final'].includes(qtype)) s.l=3;
     if(s.due===null || s.due<=today){ s.step=Math.min(s.step+1,INTERVAL.length); }
     s.due = addDays(today, INTERVAL[Math.max(0,s.step-1)]);
     s.lastOk = today;
@@ -465,20 +549,29 @@ function record(id,ok,qtype,cat){
     if(cat){ S.errors.push({d:today,cat,id}); if(S.errors.length>400) S.errors=S.errors.slice(-400); }
   }
 }
-function minutesToday(){ const d=S.days[dayKey()]; return d?Math.round(((d.night||0)+(d.test||0))/60):0; }
 function activeDay(k){ const d=S.days[k]; return !!d && ((d.night||0)>=60 || d.testDone); }
 function streak(){ let n=0,k=dayKey(); if(!activeDay(k)) k=addDays(k,-1); while(activeDay(k)){ n++; k=addDays(k,-1);} return n; }
 function lastStudyNight(){ const t=dayKey(); return Object.keys(S.days).filter(k=>k<t && (S.days[k].night||0)>=60).sort().pop()||null; }
 function reviewOnlyTonight(){ if(S.freshStart===dayKey()) return false; const ln=lastStudyNight(); return !!ln && ln<addDays(dayKey(),-1) && learnedIds().length>0 && (dayRec().night||0)<60*25; }
 
 function stageItems(id){ return SMAP[id].items(); }
-function stagePassed(id){ return !!(S.stages[id] && S.stages[id].passed); }
+const stagePassed = passed;
 function sx(id){ return S.stages[id] || (S.stages[id]={}); }
-function stageOpen(id){ const s=SMAP[id]; const list=STAGES.filter(x=>x.line===s.line); const i=list.indexOf(s); return i===0 || stagePassed(id) || stagePassed(list[i-1].id); }
+function stageOpen(id){
+  const s=SMAP[id];
+  if(s.req) return s.req() || stagePassed(id);
+  const list=STAGES.filter(x=>x.line===s.line); const i=list.indexOf(s);
+  return i===0 || stagePassed(id) || stagePassed(list[i-1].id);
+}
+function lockText(s){
+  if(s.reqTxt) return s.reqTxt;
+  const list=STAGES.filter(x=>x.line===s.line); const i=list.indexOf(s);
+  return i>0?`「${list[i-1].name}」過關後開放`:'';
+}
 function openStages(line){ return STAGES.filter(s=>(!line||s.line===line) && stageOpen(s.id)); }
 function currentStage(line){ return STAGES.find(s=>s.line===line && stageOpen(s.id) && !stagePassed(s.id)) || null; }
-function nextStage(id){ const s=SMAP[id]; const list=STAGES.filter(x=>x.line===s.line); return list[list.indexOf(s)+1]||null; }
-function testReady(id){ return stageItems(id).filter(i=>ITEM[i].th!=='Alvis').every(i=>lvl(i)>=2); }
+function nextStages(id){ return STAGES.filter(s=>s.id!==id && !stagePassed(s.id) && stageOpen(s.id)); }
+function testReady(id){ return stageItems(id).filter(i=>ITEM[i] && ITEM[i].th!=='Alvis').every(i=>lvl(i)>=2); }
 function learnedIds(filter){ return Object.keys(S.items).filter(id=>ITEM[id] && S.items[id].l>=1 && (!filter||filter(ITEM[id]))); }
 function dueIds(){ const t=dayKey(); return Object.keys(S.items).filter(id=>ITEM[id] && S.items[id].l>=1 && S.items[id].due && S.items[id].due<=t); }
 function newQueue(line){ const out=[]; openStages(line).forEach(s=>stageItems(s.id).forEach(id=>{ if(!isIntro(id)) out.push(id); })); return out; }
@@ -487,16 +580,18 @@ function learnedVowels(){ return VOWELS.filter(v=>lvl(v.id)>=1); }
 function availVowels(){ return uniqBy(learnedVowels().concat(CARRIER.map(id=>VMAP[id])),v=>v.id); }
 function weakest(){
   const since = addDays(dayKey(),-7), cnt={};
-  S.errors.filter(e=>e.d>=since).forEach(e=>{cnt[e.cat]=(cnt[e.cat]||0)+1;});
+  S.errors.filter(e=>e.d>=since && ITEM[e.id]).forEach(e=>{cnt[e.cat]=(cnt[e.cat]||0)+1;});
   const top = Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0];
   if(!top) return null;
-  const ids={}; S.errors.filter(e=>e.d>=since && e.cat===top[0]).forEach(e=>{ids[e.id]=(ids[e.id]||0)+1;});
+  const ids={}; S.errors.filter(e=>e.d>=since && e.cat===top[0] && ITEM[e.id]).forEach(e=>{ids[e.id]=(ids[e.id]||0)+1;});
   return {cat:CAT[top[0]]||top[0],n:top[1],ids:Object.entries(ids).sort((a,b)=>b[1]-a[1]).slice(0,3).map(x=>label(x[0]))};
 }
 function label(id){
   const it=ITEM[id]; if(!it) return '';
   if(it.kind==='c') return it.ch; if(it.kind==='v') return vForm(it);
-  if(it.kind==='w') return it.th; if(it.kind==='p') return it.a[0]+'／'+it.b[0]; return '聲調規則';
+  if(it.kind==='w') return it.th; if(it.kind==='p') return it.a[0]+'／'+it.b[0];
+  if(it.kind==='f') return it.show; if(it.kind==='tn') return TONES[it.tone].n; if(it.kind==='tr') return it.text.split('→')[0].trim();
+  return '';
 }
 function nightActive(){ const m=S.settings.night||'auto'; if(m==='on') return true; if(m==='off') return false; const h=hourNow(); return h>=19 || h<5 || !!(run && run.phase==='night'); }
 
@@ -509,100 +604,135 @@ function distinctSound(c,n,pool){
   const others = shuffle((pool||CONS).filter(x=>x.r!==c.r && x.freq));
   return uniqBy([c].concat(others),x=>x.r).slice(0,n);
 }
+function memoLine(c){ const m=c.memo; return m?`${m[3]?m[3]+' ':''}<span class="th">${m[0]}</span> ${m[1]}・${m[2]}`:''; }
 function consLogic(c){
   const twin = CONS.filter(x=>x.r===c.r && x.cls!==c.cls && x.freq && x.cls!=='mid' && c.cls!=='mid');
-  if(c.cls==='high' && twin.length) return `高子音 ${c.ch} 和低子音 ${twin.map(t=>`<span class="c-low th">${t.ch}</span>`).join(' ')} 同音，差別只在聲調。`;
-  if(c.cls==='low' && twin.length) return `低子音 ${c.ch} 的雙胞胎是高子音 ${twin.map(t=>`<span class="c-high th">${t.ch}</span>`).join(' ')}：同音不同調。`;
-  if(c.cls==='low') return `${c.ch} 是獨立低子音，沒有高子音雙胞胎。它是可以拉長的音，之後放在字尾時也是活音尾音。`;
-  return '中子音是聲調系統的起點：只有中子音可以用全部 4 個聲調符號。';
+  if(c.cls==='high' && twin.length) return `高子音 ${c.ch} 和低子音 ${twin.map(t=>`<span class="c-low th">${t.ch}</span>`).join(' ')} 同音，用顏色區分。`;
+  if(c.cls==='low' && twin.length) return `低子音 ${c.ch} 和高子音 ${twin.map(t=>`<span class="c-high th">${t.ch}</span>`).join(' ')} 同音（雙胞胎），用顏色區分。`;
+  if(c.cls==='low') return `${c.ch} 是獨立低子音，沒有高子音雙胞胎，用紫色記。`;
+  return '中子音用藍色記。口訣：<span class="th">ไก่ จิก เด็ก ตาย บน ปาก โอ่ง</span>（雞啄死了水缸口上的小孩）。';
 }
 function signNote(c){ return FALSE_FRIEND[c.ch] ? `<div class="note" style="padding:8px 12px">注意：${FALSE_FRIEND[c.ch]}</div>` : ''; }
+function nameExplain(c){ return `<span class="th c-${c.cls}">${c.ch}</span> ＝ <b>${c.r||'不發音'}</b>：${esc(c.anchor)}。${CLS[c.cls]}，字母名 <span class="th">${c.ch} ${c.name}</span>（${c.nameZh}）。<br>記憶詞：${memoLine(c)}`; }
 function qSeeCons(c){
-  const opts = shuffle(distinctSound(c,4)).map(soundOpt);
-  return {qt:'see', items:[c.id], cat:'read', prompt:'這個子音念什麼音？', big:`<div class="big c-${c.cls}">${c.ch}</div>`, audio:consSound(c), autoplay:false,
-    opts, ans:c.r||'∅', explain:`<span class="th c-${c.cls}">${c.ch}</span> ＝ <b>${c.r||'不發音'}</b>：${esc(c.anchor)}。${CLS[c.cls]}，字母名 <span class="th">${c.ch} ${c.name}</span>（${c.nameZh}）。<br>${consLogic(c)}`};
+  return {qt:'see', items:[c.id], cat:'read', prompt:'這個子音念什麼音？', big:`<div class="big c-${c.cls}">${c.ch}</div>`, audio:consSound(c),
+    opts:shuffle(distinctSound(c,4)).map(soundOpt), ans:c.r||'∅', explain:nameExplain(c)};
 }
 function qListenCons(c){
   const pool = learnedCons().length>=4?learnedCons():CONS;
-  const opts = shuffle(distinctSound(c,4,pool.concat([c]))).map(x=>consOpt(x,false));
-  return {qt:'listen', items:[c.id], cat:'sound', prompt:'聽到的是哪個子音？', big:'', audio:consSound(c), autoplay:true, needsAudio:true,
-    opts, ans:c.ch, explain:`這是 <span class="th c-${c.cls}">${c.ch}</span>（${c.r||'不發音'}，${esc(c.anchor)}）。`};
+  return {qt:'listen', items:[c.id], cat:'sound', prompt:'聽到的是哪個字母？', big:'', audio:consSound(c), autoplay:true, needsAudio:true,
+    opts:shuffle(distinctSound(c,4,pool.concat([c]))).map(x=>consOpt(x,false)), ans:c.ch, explain:nameExplain(c)};
+}
+function qMemo(c){
+  if(!c.memo) return null;
+  const others = shuffle(CONS.filter(x=>x.ch!==c.ch && x.freq && x.memo && x.memo[3] && x.r!==c.r)).slice(0,3);
+  return {qt:'memo', items:[c.id], cat:'read', prompt:`${c.memo[3]||''} <span class="th">${c.memo[0]}</span>（${c.memo[2]}）是用哪個字母記的？`, big:'', audio:null,
+    opts:shuffle([c].concat(others)).map(x=>consOpt(x,true)), ans:c.ch, explain:nameExplain(c)};
 }
 function qClassify(c){
-  const opts = ['mid','high','low'].map(k=>({key:k,html:`<span style="font-size:18px;font-weight:700" class="c-${k}">${CLS[k]}</span>`}));
-  return {qt:'classify', items:[c.id], cat:'class', prompt:'這是中、高、還是低子音？', big:`<div class="big">${c.ch}</div>`, audio:null,
-    opts, ans:c.cls, one:true, explain:`<span class="th c-${c.cls}">${c.ch}</span> 是<b class="c-${c.cls}">${CLS[c.cls]}</b>。${consLogic(c)}`};
+  return {qt:'classify', items:[c.id], cat:'class', prompt:'這是中、高、還是低子音？', big:`<div class="big">${c.ch}</div>`, audio:null, one:true,
+    opts:['mid','high','low'].map(k=>({key:k,html:`<span style="font-size:18px;font-weight:700" class="c-${k}">${CLS[k]}</span>`})),
+    ans:c.cls, explain:`<span class="th c-${c.cls}">${c.ch}</span> 是<b class="c-${c.cls}">${CLS[c.cls]}</b>。${consLogic(c)}`};
 }
 function qShape(c){
-  const grp = LOOKALIKE.find(g=>g.includes(c.ch));
-  if(!grp) return null;
-  let members = uniqBy([...grp].map(ch=>CMAP[ch]).filter(Boolean),x=>x.r+x.cls);
+  const grp = LOOKALIKE.find(g=>g.includes(c.ch)); if(!grp) return null;
+  const members = uniqBy([...grp].map(ch=>CMAP[ch]).filter(Boolean),x=>x.r+x.cls);
   if(members.length<2) return null;
-  const opts = shuffle(members.slice(0,4)).map(x=>consOpt(x,true));
-  return {qt:'shape', items:[c.id], cat:'shape', prompt:`哪一個是 <b>${c.r||'不發音的 อ'}</b>（<span class="c-${c.cls}">${CLS[c.cls]}</span>）？`, big:'', audio:consSound(c),
-    opts, ans:c.ch, explain:members.map(m=>`<span class="th c-${m.cls}" style="font-size:22px">${m.ch}</span> ${m.r||'∅'}（${CLS[m.cls]}）`).join('　')};
+  return {qt:'shape', items:[c.id], cat:'shape', prompt:`哪一個是 <b>${c.r||'不發音的 อ'}</b>（<span class="c-${c.cls}">${CLS[c.cls]}</span>）？`, big:'', audio:null,
+    opts:shuffle(members.slice(0,4)).map(x=>consOpt(x,true)), ans:c.ch, explain:members.map(m=>`<span class="th c-${m.cls}" style="font-size:22px">${m.ch}</span> ${m.r||'∅'}（${CLS[m.cls]}）`).join('　')};
 }
 function qSign(c){
   const others = shuffle(learnedCons().filter(x=>x.ch!==c.ch && x.freq)).slice(0,3);
   if(others.length<2) return null;
-  const opts = shuffle([c].concat(others)).map(x=>({key:x.ch,html:`<span class="t c-${x.cls}">${x.ch}</span>`,sub:x.r||'∅'}));
-  return {qt:'sign', items:[c.id], cat:'sign', prompt:'招牌字體：這是哪一個字母？', big:`<div class="big sign" style="font-family:var(--font-sign)">${c.ch}</div><p class="small muted" style="text-align:center">無頭圈字體（招牌、菜單、包裝）</p>`, audio:null, one:false,
-    opts, ans:c.ch, explain:`<div class="duo"><div><div class="mid-big c-${c.cls}">${c.ch}</div><div class="lbl">課本／手寫</div></div><div><div class="mid-big sign" style="font-family:var(--font-sign)">${c.ch}</div><div class="lbl">招牌字</div></div></div>${c.r||'不發音'}・${CLS[c.cls]}${FALSE_FRIEND[c.ch]?'<br><b>'+FALSE_FRIEND[c.ch]+'</b>':''}`};
+  return {qt:'sign', items:[c.id], cat:'sign', prompt:'招牌字體：這是哪一個字母？', big:`<div class="big sign">${c.ch}</div><p class="small muted" style="text-align:center">無頭圈字體（招牌、菜單、包裝）</p>`, audio:null,
+    opts:shuffle([c].concat(others)).map(x=>({key:x.ch,html:`<span class="t c-${x.cls}">${x.ch}</span>`,sub:x.r||'∅'})), ans:c.ch,
+    explain:`<div class="duo"><div><div class="mid-big c-${c.cls}">${c.ch}</div><div class="lbl">課本／手寫</div></div><div><div class="mid-big sign">${c.ch}</div><div class="lbl">招牌字</div></div></div>${c.r||'不發音'}・${CLS[c.cls]}${FALSE_FRIEND[c.ch]?'<br><b>'+FALSE_FRIEND[c.ch]+'</b>':''}`};
 }
+function vLenTxt(v){ return v.len==='L'?'長音':v.len==='S'?'短音':'不配對母音'; }
 function qSeeVowel(v){
   let others = []; if(v.pair) others.push(VMAP[v.pair]);
   others = others.concat(shuffle(VOWELS.filter(x=>x.id!==v.id && (x.len===v.len || x.len==='U'))));
-  const opts = shuffle(uniqBy([v].concat(others),x=>x.r).slice(0,4)).map(x=>({key:x.r,html:`<span style="font-size:22px;font-weight:700">${x.r}</span>`,sub:x.len==='L'?'長':x.len==='S'?'短':'不配對'}));
-  const s = makeSyl(CMAP['ก'],v,'');
-  return {qt:'see', items:[v.id], cat:v.len==='U'?'read':'length', prompt:'這個母音念什麼？', big:`<div class="big c-vowel">${vForm(v)}</div>`, audio:s.th,
-    opts, ans:v.r, explain:`<span class="th">${vForm(v)}</span> ＝ <b>${v.r}</b>（${v.len==='L'?'長音':v.len==='S'?'短音':'不配對母音'}）。${esc(v.logic)}<br>例：<span class="th">${s.th}</span> ${s.roman}`};
+  return {qt:'see', items:[v.id], cat:v.len==='U'?'read':'length', prompt:'這個母音念什麼？', big:`<div class="big c-vowel">${vForm(v)}</div>`, audio:vSay(v),
+    opts:shuffle(uniqBy([v].concat(others),x=>x.r).slice(0,4)).map(x=>({key:x.r,html:`<span style="font-size:22px;font-weight:700">${x.r}</span>`,sub:x.len==='L'?'長':x.len==='S'?'短':'不配對'})),
+    ans:v.r, explain:`<span class="th">${vForm(v)}</span> ＝ <b>${v.r}</b>（${vLenTxt(v)}）。${esc(fixMarks(v.logic))}`};
 }
 function qListenVowel(v){
-  const c = CMAP['ก'];
   let others = []; if(v.pair) others.push(VMAP[v.pair]);
   others = others.concat(shuffle(VOWELS.filter(x=>x.id!==v.id && lvl(x.id)>=1)), shuffle(VOWELS.filter(x=>x.id!==v.id)));
   const list = shuffle(uniqBy([v].concat(others),x=>x.r+x.len).slice(0,4));
-  const opts = list.map(x=>({key:x.id,html:`<span class="t">${makeSyl(c,x,'').th}</span>`}));
-  const s = makeSyl(c,v,'');
-  return {qt:'listen', items:[v.id], cat:'length', prompt:'聽到的是哪一個？', big:'', audio:s.th, autoplay:true, needsAudio:true,
-    opts, ans:v.id, explain:`<span class="th">${s.th}</span> ${s.roman}：${v.len==='L'?'長音，要拉長':v.len==='S'?'短音，短而收住':'不配對母音'}。${esc(v.logic)}`};
+  return {qt:'listen', items:[v.id], cat:'length', prompt:'聽到的是哪一個母音？', big:'', audio:vSay(v), autoplay:true, needsAudio:true,
+    opts:list.map(x=>({key:x.id,html:`<span class="t">${vForm(x)}</span>`})), ans:v.id, explain:`<span class="th">${vForm(v)}</span> ${v.r}（${vLenTxt(v)}）。${esc(fixMarks(v.logic))}`};
+}
+const finalOpts = f => shuffle(uniqBy([f].concat(shuffle(FINALS.filter(x=>x.id!==f.id))),x=>x.id).slice(0,4)).map(x=>({key:x.id,html:`<span style="font-size:22px;font-weight:700">${x.show}</span>`,sub:x.live?'活音':'死音'}));
+function finalExplain(f){ return `尾音 <b>${f.show}</b>（${f.live?'活音，可以拉長':'死音，會截斷'}）：<span class="th">${f.letters.filter(ch=>CMAP[ch].freq).join(' ')}</span><br>例：${f.ex[3]} <span class="th">${f.ex[0]}</span> ${f.ex[1]}・${f.ex[2]}`; }
+function qFinalLetter(f){
+  const ch = pick(f.letters.filter(x=>CMAP[x].freq));
+  return {qt:'final', items:[f.id], cat:'final', prompt:`<span class="th" style="font-size:28px">${ch}</span> 放在字尾時，念什麼音？`, big:'', audio:null, opts:finalOpts(f), ans:f.id, explain:finalExplain(f)};
+}
+function qFinalWord(f){
+  const w=f.ex[0], last=[...w].reverse().find(ch=>CMAP[ch]);
+  const html = w.replace(new RegExp(last+'(?!.*'+last+')'),`<span class="c-tone">${last}</span>`);
+  return {qt:'see', items:[f.id], cat:'final', prompt:'這個字的尾音是？', big:`<div class="mid-big">${html}</div><p class="small muted" style="text-align:center">${f.ex[3]} ${f.ex[2]}</p>`, audio:w, opts:finalOpts(f), ans:f.id, explain:finalExplain(f)};
+}
+function qFinalLive(f){
+  return {qt:'classify', items:[f.id], cat:'final', prompt:`尾音 <b>${f.show}</b> 是活音還是死音？`, big:'', audio:null, one:true,
+    opts:[{key:'L',html:'<b>活音</b>',sub:'可以拉長'},{key:'D',html:'<b>死音</b>',sub:'會截斷'}], ans:f.live?'L':'D', explain:finalExplain(f)};
+}
+const toneOpts = () => ['M','L','F','H','R'].map(k=>({key:k,html:`<span style="font-size:16px;font-weight:700">${TONES[k].n}</span>${curve(k)}`}));
+function wordsOfTone(k){ return TWORDS.filter(w=>w.tone===k); }
+function qToneListen(k){
+  const w = pick(wordsOfTone(k));
+  return {qt:'listen', items:['tn:'+k], cat:'tonehear', prompt:'聽到的字是什麼聲調？', big:'', audio:w.th, autoplay:true, needsAudio:true, opts:toneOpts(), ans:k, one:false,
+    explain:`<span class="th" style="font-size:22px">${w.th}</span> ${w.r}・${w.zh}：<b>${TONES[k].n}</b> ${curve(k)}（${TONES[k].hint}）`};
+}
+function qToneRoman(k){
+  const w = pick(wordsOfTone(k));
+  return {qt:'see', items:['tn:'+k], cat:'tonehear', prompt:`拼音 <b style="font-size:24px">${w.r}</b> 標的是什麼聲調？`, big:'', audio:null, opts:toneOpts(), ans:k,
+    explain:`符號：a 中平、à 低、â 降、á 高、ǎ 升。<br><span class="th" style="font-size:22px">${w.th}</span> ${w.r}・${w.zh}：<b>${TONES[k].n}</b>`, after:w.th};
+}
+function sylForRule(rid){
+  const cls = rid.includes('mid')?'mid':rid.includes('high')?'high':rid.includes('low')?'low':pick(['mid','high','low']);
+  const cs = CONS.filter(c=>c.cls===cls && c.freq && c.ch!=='อ');
+  const c = pick(cs);
+  if(rid.endsWith('-live')){ const v=pick(availVowels().filter(v=>v.len!=='S')); return makeSyl(c,v,''); }
+  if(rid==='tr:mid-dead'||rid==='tr:high-dead'||rid==='tr:low-dead-s'){ const v=pick(learnedVowels().filter(v=>v.len==='S')) || VMAP['v:a-s']; return makeSyl(c,v,''); }
+  if(rid.startsWith('tr:mark')){ const v=pick(availVowels().filter(v=>v.len!=='S')); const t=pick(toneMarksFor(c,v).filter(Boolean)); return makeSyl(c,v,t); }
+  if(rid==='tr:mix'){ const v=pick(availVowels()); return makeSyl(c,v,pick(toneMarksFor(c,v))); }
+  return null;
+}
+function wordForRule(rid){
+  const ws = rid==='tr:mix' ? TWORDS : TWORDS.filter(w=>ruleOf(w.cls,w.kind,w.mark)===rid);
+  return ws.length?pick(ws):null;
+}
+function qReason(rid,useWord){
+  const w = useWord ? wordForRule(rid) : sylForRule(rid);
+  if(!w) return null;
+  const steps = [
+    {q:'1　起首子音是哪一類？',opts:['mid','high','low'].map(k=>({key:k,txt:CLS[k]})),ans:w.cls},
+    {q:'2　活音還是死音？',opts:Object.entries(KIND).map(([k,t])=>({key:k,txt:t})),ans:w.kind},
+    {q:'3　聲調符號？',opts:['','่','้','๊','๋'].map(k=>({key:k,txt:TM[k]})),ans:w.mark},
+    {q:'4　所以念什麼聲調？',opts:['M','L','F','H','R'].map(k=>({key:k,txt:TONES[k].n})),ans:w.tone}
+  ];
+  const item = rid==='tr:mix' ? 'tr:mix' : ruleOf(w.cls,w.kind,w.mark);
+  return {qt:'reason', kind:'reason', w, steps, items:[item]};
+}
+function qSpell(rid){
+  const s = sylForRule(rid); if(!s || !s.c) return null;
+  const sameSound = CONS.filter(x=>x.r===s.c.r && x.ch!==s.c.ch && x.freq);
+  const consPool = uniqBy([s.c].concat(shuffle(sameSound),shuffle(CONS.filter(x=>x.freq && x.ch!=='อ'))),x=>x.ch).slice(0,4);
+  const vPool = uniqBy([s.v].concat(shuffle(availVowels())),x=>x.id).slice(0,4);
+  return {qt:'spell', kind:'spell', syl:s, cons:shuffle(consPool), vows:shuffle(vPool), marks:['','่','้','๊','๋'], items:[rid==='tr:mix'?'tr:mix':ruleOf(s.cls,s.kind,s.mark)]};
 }
 function qPair(p){
   const w = rnd(2)?p.b:p.a;
-  const opts = shuffle([p.a,p.b]).map(x=>({key:x[0],html:`<span class="t">${x[0]}</span>`,sub:x[2]}));
   return {qt:'pair', items:[p.id], cat:'sound', prompt:'聽到的是哪一個字？（只差聲調或長短）', big:'', audio:w[0], autoplay:true, needsAudio:true,
-    opts, ans:w[0], explain:`<span class="th">${p.a[0]}</span> ${p.a[1]}（${p.a[2]}）　vs　<span class="th">${p.b[0]}</span> ${p.b[1]}（${p.b[2]}）<br><span class="small muted">聽到的是 ${w[1]}。</span>`};
-}
-function randomSyl(focusId){
-  const cs = learnedCons().filter(c=>c.freq), vs = availVowels();
-  const f = ITEM[focusId];
-  let c = (f && f.kind==='c' && f.freq) ? f : (cs.length?pick(cs):null);
-  if(!c) return null;
-  let v = (f && f.kind==='v') ? f : pick(vs);
-  const t = Math.random()<0.4 ? '' : pick(toneMarksFor(c,v));
-  return makeSyl(c,v,t);
-}
-function qReason(focusId){
-  const s = randomSyl(focusId); if(!s) return null;
-  const steps = [
-    {q:'1　子音類別？',opts:['mid','high','low'].map(k=>({key:k,txt:CLS[k]})),ans:s.c.cls,cat:'class'},
-    {q:'2　母音長短（活音或死音）？',opts:[{key:'L',txt:'長母音（活音）'},{key:'S',txt:'短母音（死音）'},{key:'U',txt:'不配對母音（活音）'}],ans:s.v.len,cat:'length'},
-    {q:'3　聲調符號？',opts:['','่','้','๊','๋'].map(k=>({key:k,txt:TM[k]})),ans:s.t,cat:'tone'},
-    {q:'4　所以念什麼聲調？',opts:['M','L','F','H','R'].map(k=>({key:k,txt:TONES[k].n})),ans:s.tone,cat:'tone'}
-  ];
-  return {qt:'reason', kind:'reason', syl:s, steps, items:[s.c.id,s.v.id,'r:tone']};
-}
-function qSpell(focusId){
-  const s = randomSyl(focusId); if(!s) return null;
-  const sameSound = CONS.filter(x=>x.r===s.c.r && x.ch!==s.c.ch && x.freq);
-  const consPool = uniqBy([s.c].concat(shuffle(sameSound),shuffle(learnedCons().filter(x=>x.freq))),x=>x.ch).slice(0,4);
-  const vPool = uniqBy([s.v].concat(s.v.pair&&lvl(s.v.pair)>=1?[VMAP[s.v.pair]]:[],shuffle(availVowels())),x=>x.id).slice(0,4);
-  return {qt:'spell', kind:'spell', syl:s, cons:shuffle(consPool), vows:shuffle(vPool), marks:['','่','้','๊','๋'], items:[s.c.id,s.v.id,'r:tone']};
+    opts:shuffle([p.a,p.b]).map(x=>({key:x[0],html:`<span class="t">${x[0]}</span>`,sub:x[2]})), ans:w[0],
+    explain:`<span class="th">${p.a[0]}</span> ${p.a[1]}（${p.a[2]}）　vs　<span class="th">${p.b[0]}</span> ${p.b[1]}（${p.b[2]}）<br><span class="small muted">聽到的是 ${w[1]}。</span>`};
 }
 function qVocabListen(w){
   const pool = VOCAB.filter(x=>x.stage===w.stage && x.th!==w.th);
-  const opts = shuffle([w].concat(shuffle(pool).slice(0,3))).map(x=>({key:x.th,html:`<span class="t" style="font-size:22px">${x.th}</span>`,sub:x.zh}));
-  return {qt:'listen', items:[w.id], cat:'vocab', prompt:'聽到的是哪個字？', big:'', audio:w.th, autoplay:true, needsAudio:true, opts, ans:w.th, one:true,
+  return {qt:'listen', items:[w.id], cat:'vocab', prompt:'聽到的是哪個字？', big:'', audio:w.th, autoplay:true, needsAudio:true, one:true,
+    opts:shuffle([w].concat(shuffle(pool).slice(0,3))).map(x=>({key:x.th,html:`<span class="t" style="font-size:22px">${x.th}</span>`,sub:x.zh})), ans:w.th,
     explain:`<span class="th">${w.th}</span> ${w.r}：${w.zh}`};
 }
 
@@ -662,18 +792,19 @@ function genDrill(topic){
 
 function questionFor(id, opts={}){
   const it = ITEM[id]; if(!it) return null;
-  const canReason = learnedCons().some(c=>c.freq) || (it.kind==='c' && it.freq);
   let gens = [];
   if(it.kind==='c'){
-    gens = [()=>qSeeCons(it),()=>qListenCons(it),()=>qClassify(it),()=>qShape(it)];
+    gens = [()=>qSeeCons(it),()=>qListenCons(it),()=>qClassify(it),()=>qShape(it),()=>qMemo(it)];
     if(lvl(id)>=2) gens.push(()=>qSign(it));
-    if(canReason && it.freq && !opts.noReason) gens.push(()=>qReason(id),()=>qSpell(id));
-  } else if(it.kind==='v'){
-    gens = [()=>qSeeVowel(it),()=>qListenVowel(it)];
-    if(canReason && !opts.noReason) gens.push(()=>qReason(id),()=>qSpell(id));
-  } else if(it.kind==='p'){ gens=[()=>qPair(it)]; }
+  } else if(it.kind==='v'){ gens = [()=>qSeeVowel(it),()=>qListenVowel(it)]; }
+  else if(it.kind==='f'){ gens = [()=>qFinalLetter(it),()=>qFinalWord(it),()=>qFinalLive(it)]; }
+  else if(it.kind==='tn'){ gens = [()=>qToneListen(it.tone),()=>qToneRoman(it.tone)]; }
+  else if(it.kind==='tr'){
+    gens = [()=>qReason(id,true)];
+    if(!opts.noReason){ gens.push(()=>qReason(id,false)); if(id.startsWith('tr:mark')||id==='tr:mix') gens.push(()=>qSpell(id)); }
+  }
+  else if(it.kind==='p'){ gens=[()=>qPair(it)]; }
   else if(it.kind==='w'){ gens = opts.noReason ? [()=>qVocabListen(it)] : [()=>qVocabListen(it),()=>genDrill(it.stage),()=>genDrill(it.stage)]; }
-  else if(it.kind==='r'){ gens=[()=>qReason(null),()=>qSpell(null)]; }
   const s = S.items[id];
   for(const g of shuffle(gens)){ const q=g(); if(q && (!s || !s.okTypes.includes(q.qt) || Math.random()<0.4)) return q; }
   for(const g of shuffle(gens)){ const q=g(); if(q) return q; }
@@ -699,18 +830,19 @@ function testPlan(){
   const B = dueIds().filter(id=>S.items[id].introDay && S.items[id].introDay<today && !tested.has(id) && !A.includes(id) && !sk.includes(id));
   return {A,B,sk,ln};
 }
+const hasContent = line => !!currentStage(line) || newQueue(line).length>0;
 function buildNight(kind){
   const d=dayRec(), steps=[];
   const addQ=(id,o)=>{ const q=questionFor(id,o); if(q) steps.push(q); };
   if(kind==='relearn'){
-    const ids = d.testWrong.slice(0,6);
-    ids.forEach(id=>{ steps.push({kind:'intro',id,relearn:true}); addQ(id,{noReason:true}); });
+    d.testWrong.slice(0,6).forEach(id=>{ steps.push({kind:'intro',id,relearn:true}); addQ(id,{noReason:true}); });
     return steps;
   }
   if(kind==='recall'){
-    let ids = uniqBy(d.newIds.concat(d.relearnIds),x=>x).filter(id=>ITEM[id] && ['c','v','w'].includes(ITEM[id].kind) && ITEM[id].stage!=='X');
-    if(!ids.length) ids = Object.keys(S.items).filter(id=>ITEM[id] && ['c','v','w'].includes(ITEM[id].kind) && S.items[id].introDay>=addDays(dayKey(),-2) && ITEM[id].stage!=='X');
-    if(!ids.length) ids = shuffle(learnedIds(it=>['c','v','w'].includes(it.kind))).slice(0,8);
+    const ok = id => ITEM[id] && ['c','v','w','f'].includes(ITEM[id].kind) && ITEM[id].stage!=='X';
+    let ids = uniqBy(d.newIds.concat(d.relearnIds),x=>x).filter(ok);
+    if(!ids.length) ids = Object.keys(S.items).filter(id=>ok(id) && S.items[id].introDay>=addDays(dayKey(),-2));
+    if(!ids.length) ids = shuffle(learnedIds(it=>['c','v','w','f'].includes(it.kind))).slice(0,8);
     return ids.length?[{kind:'recall',ids:ids.slice(0,12)}]:[];
   }
   if(reviewOnlyTonight()){
@@ -718,18 +850,17 @@ function buildNight(kind){
     shuffle(ids.slice(0,10)).forEach(id=>addQ(id));
     return steps;
   }
-  // 新內容：字母線與會話線輪流
-  const hasL = !!currentStage('L') || newQueue('L').length>0, hasC = !!currentStage('C') || newQueue('C').length>0;
-  const line = (hasL && (!hasC || d.rounds%2===0)) ? 'L' : (hasC ? 'C' : null);
-  if(!line){ dueIds().slice(0,10).forEach(id=>addQ(id)); return steps; }
+  // 新內容：字母、聲調、會話三條線輪流
+  const lines = ['L','T','C'].filter(hasContent);
+  if(!lines.length){ dueIds().slice(0,10).forEach(id=>addQ(id)); return steps; }
+  const line = lines[d.rounds % lines.length];
   const q0 = newQueue(line);
   const sid0 = q0.length ? ITEM[q0[0]].stage : (currentStage(line)||{}).id;
-  const size = line==='L' ? (ITEM[q0[0]]&&ITEM[q0[0]].kind==='c'?4:3) : 4;
+  const k0 = q0.length ? ITEM[q0[0]].kind : '';
+  const size = k0==='c'?4:k0==='w'?4:3;
   const fresh = q0.filter(id=>ITEM[id].stage===sid0).slice(0,size);
-  if(sid0){
-    if(line==='L' && !sx(sid0).mapSeen) steps.push({kind:'map',stage:sid0});
-    if(line==='C' && !sx(sid0).introSeen) steps.push({kind:'stageintro',stage:sid0});
-  }
+  if(sid0 && (line==='L'||line==='T') && !sx(sid0).mapSeen) steps.push({kind:'map',stage:sid0});
+  if(sid0 && line==='C' && !sx(sid0).introSeen) steps.push({kind:'stageintro',stage:sid0});
   fresh.forEach(id=>steps.push({kind:'intro',id}));
   fresh.forEach(id=>addQ(id,{noReason:true}));
   fresh.forEach(id=>addQ(id));
@@ -749,7 +880,7 @@ function buildDayTest(){
   return steps;
 }
 function buildStageTest(sid){
-  const items = stageItems(sid).filter(i=>ITEM[i].th!=='Alvis'); const steps=[];
+  const items = stageItems(sid).filter(i=>ITEM[i] && ITEM[i].th!=='Alvis'); const steps=[];
   if(SMAP[sid].line==='C'){
     for(let i=0;i<12;i++){ const q=genDrill(sid); if(q) steps.push(q); }
     shuffle(items).slice(0,6).forEach(id=>steps.push(qVocabListen(ITEM[id])));
@@ -763,7 +894,7 @@ function buildDiag(){
   const steps=[];
   ['S1','S2','S3','S4','S5','S6'].forEach(sid=>{
     steps.push({kind:'diagsection',stage:sid});
-    shuffle(stageItems(sid).filter(id=>ITEM[id].kind!=='p')).forEach(id=>{
+    shuffle(stageItems(sid)).forEach(id=>{
       const it=ITEM[id];
       if(it.kind==='c'){
         const sameSound = CONS.filter(x=>x.r===it.r && x.cls!==it.cls);
@@ -771,7 +902,7 @@ function buildDiag(){
         const combos = uniqBy([{c:it,cls:it.cls}].concat(sameSound.map(x=>({c:it,cls:x.cls})), other.map(x=>({c:x,cls:it.cls})), other.map(x=>({c:x,cls:x.cls}))),x=>x.c.r+x.cls).slice(0,4);
         steps.push({qt:'diag',items:[id],cat:'class',diag:sid,prompt:'這個子音念什麼、屬於哪一類？',big:`<div class="big">${it.ch}</div>`,audio:null,one:true,
           opts:shuffle(combos).map(x=>({key:x.c.r+'|'+x.cls,html:`<span style="font-size:18px;font-weight:700">${x.c.r||'不發音'}・<span class="c-${x.cls}">${CLS[x.cls]}</span></span>`})),
-          ans:it.r+'|'+it.cls,explain:`<span class="th c-${it.cls}">${it.ch}</span> ＝ ${it.r||'不發音'}・${CLS[it.cls]}`});
+          ans:it.r+'|'+it.cls,explain:nameExplain(it)});
       } else { const q=qSeeVowel(it); q.qt='diag'; q.diag=sid; steps.push(q); }
     });
   });
@@ -796,6 +927,12 @@ function render(){
   if(r==='rules') return renderRules();
 }
 function meter(v,max){ return `<div class="meter" role="img" aria-label="${v} / ${max}"><i style="width:${Math.min(100,Math.round(v/max*100))}%"></i></div>`; }
+function backupNote(){
+  if(!storageOk) return '<div class="note">這個瀏覽器無法保存進度。請用 Chrome 開啟，不要用無痕模式。</div>';
+  const lb = S.lastBackup;
+  if(!lb || diffDays(lb,dayKey())>=7) return `<div class="note">進度只存在這支手機。${lb?`上次備份是 ${lb}，`:''}建議每週到「語音與設定」匯出一次備份。</div>`;
+  return `<p class="small muted">進度存在這支手機，上次備份 ${lb}。</p>`;
+}
 function renderHome(){
   if(!S.onboarded) return go({name:'welcome'});
   const d=dayRec(), wk=weakest(), now=new Date(), wd='日一二三四五六'[now.getDay()];
@@ -819,13 +956,13 @@ function renderHome(){
   const testCard = `<div class="card"><div class="row between"><h2>今天考試</h2><button class="pill ${quiet()?'on':''}" id="qt" aria-pressed="${quiet()}">安靜模式：${quiet()?'開':'關'}</button></div>${testBody}</div>`;
   const clsCount = k => { const all=CONS.filter(c=>c.cls===k&&c.freq); return `${all.filter(c=>lvl(c.id)>=2).length} / ${all.length}`; };
   const stageRow = s => {
-    const open=stageOpen(s.id), passed=stagePassed(s.id), cur=open&&!passed;
-    const items=stageItems(s.id).filter(i=>ITEM[i].th!=='Alvis'), fam=items.filter(i=>lvl(i)>=2).length;
+    const open=stageOpen(s.id), pass=stagePassed(s.id), cur=open&&!pass;
+    const items=stageItems(s.id).filter(i=>ITEM[i] && ITEM[i].th!=='Alvis'), fam=items.filter(i=>lvl(i)>=2).length;
     const ready = cur && testReady(s.id);
-    return `<div class="stage ${passed?'done':cur?'cur':''} ${open?'':'lock'}"><span class="dot"></span>
-      <div class="grow"><div style="font-weight:700">${s.name}</div><div class="small muted">${passed?'已過關':open?`熟悉 ${fam} / ${items.length}${ready?'・可以考了':''}`:'過關前一階段後解鎖'}</div></div>
-      ${s.line==='L'?`<button class="pill" data-map="${s.id}">地圖</button>`:''}
-      ${open && (ready||passed) ? `<button class="pill" data-test="${s.id}">${passed?'再考一次':'階段考'}</button>`:''}</div>`;
+    return `<div class="stage ${pass?'done':cur?'cur':''} ${open?'':'lock'}"><span class="dot"></span>
+      <div class="grow"><div style="font-weight:700">${s.name}</div><div class="small muted">${pass?'已過關':open?`熟悉 ${fam} / ${items.length}${ready?'・可以考了':''}`:esc(lockText(s))}</div></div>
+      ${s.line!=='C'?`<button class="pill" data-map="${s.id}">${s.line==='L'?'地圖':'說明'}</button>`:''}
+      ${open && (ready||pass) ? `<button class="pill" data-test="${s.id}">${pass?'再考一次':'階段考'}</button>`:''}</div>`;
   };
   $app.innerHTML = `
   <div class="row between">
@@ -840,8 +977,7 @@ function renderHome(){
       <div class="mini bar-high"><span class="t c-high">ข</span><span class="small" style="font-weight:500">高子音</span><span class="small muted">${clsCount('high')}</span></div>
       <div class="mini bar-low"><span class="t c-low">ค</span><span class="small" style="font-weight:500">低子音</span><span class="small muted">${clsCount('low')}</span></div>
     </div></div>
-  <div class="col"><h3 class="muted">字母線</h3><div class="path">${STAGES.filter(s=>s.line==='L').map(stageRow).join('')}</div></div>
-  <div class="col"><h3 class="muted">會話線</h3><div class="path">${STAGES.filter(s=>s.line==='C').map(stageRow).join('')}</div></div>
+  ${['L','T','C'].map(l=>`<div class="col"><h3 class="muted">${LINES[l]}</h3><div class="path">${STAGES.filter(s=>s.line===l).map(stageRow).join('')}</div></div>`).join('')}
   <div class="row" style="flex-wrap:wrap;gap:4px 16px">
     <button class="linkbtn" data-go="rules">聲調規則表</button>
     <button class="linkbtn" data-go="settings">語音與設定</button>
@@ -852,14 +988,8 @@ function renderHome(){
   const tb=document.getElementById('test'); if(tb) tb.onclick=startDayTest;
   document.getElementById('qt').onclick=()=>{ S.settings.quiet=!quiet(); touch(); render(); };
   $app.querySelectorAll('[data-test]').forEach(b=>b.onclick=()=>startStageTest(b.dataset.test));
-  $app.querySelectorAll('[data-map]').forEach(b=>b.onclick=()=>go({name:'map',sid:b.dataset.map}));
+  $app.querySelectorAll('[data-map]').forEach(b=>b.onclick=()=>{ mapState.sel=null; go({name:'map',sid:b.dataset.map}); });
   $app.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>go({name:b.dataset.go}));
-}
-function backupNote(){
-  if(!storageOk) return '<div class="note">這個瀏覽器無法保存進度。請用 Chrome 開啟，不要用無痕模式。</div>';
-  const lb = S.lastBackup;
-  if(!lb || diffDays(lb,dayKey())>=7) return `<div class="note">進度只存在這支手機。${lb?`上次備份是 ${lb}，`:''}建議每週到「語音與設定」匯出一次備份。</div>`;
-  return `<p class="small muted">進度存在這支手機，上次備份 ${lb}。</p>`;
 }
 function renderWelcome(){
   $app.innerHTML = `
@@ -929,7 +1059,7 @@ function renderRun(){
 }
 function audioBtn(text,lg){ return text?`<button class="audio ${lg?'lg':''}" data-say="${esc(text)}" aria-label="播放發音">${SPK}</button>`:''; }
 function bindAudio(){ $app.querySelectorAll('[data-say]').forEach(b=>b.onclick=()=>say(b.dataset.say)); }
-function quietGate(q){
+function quietGate(){
   return `<div class="card"><h3>安靜模式：這題要聽聲音</h3><p class="muted">戴上耳機就能作答；不方便就先略過，下次考試會補考，不算答錯。</p>
   <div class="btns"><button class="btn" id="qskip">略過，之後補考</button><button class="btn primary" id="qear">戴好耳機了</button></div></div>`;
 }
@@ -938,41 +1068,72 @@ function bindQuietGate(q,rerender){
   document.getElementById('qear').onclick=()=>{ q.unlocked=true; rerender(); setTimeout(()=>say(q.audio||q.heard),250); };
 }
 
-/* ---------- 字母地圖 ---------- */
+/* ---------- 字母卡零件 ---------- */
+function duo(c,big){
+  return `<div class="duo"><div><div class="${big?'big':'mid-big'} c-${c.cls}">${c.ch}</div><div class="lbl">課本／手寫</div></div><div><div class="mid-big sign">${c.ch}</div><div class="lbl">招牌字</div></div></div>`;
+}
+function memoCard(c){
+  const m=c.memo; if(!m) return '';
+  const same = m[0]===c.name;
+  return `<div class="memo">${m[3]?`<span class="emo" aria-hidden="true">${m[3]}</span>`:''}
+    <div class="col" style="gap:0;flex:1;min-width:0"><span class="th" style="font-size:24px;font-weight:600">${m[0]}</span><span class="small">${m[1]}・${m[2]}</span>
+    ${same?'':`<span class="small muted">課本字母名：<span class="th">${c.ch} ${c.name}</span>（${c.nameZh}）</span>`}</div>${audioBtn(m[0])}</div>`;
+}
+
+/* ---------- 地圖與規則說明 ---------- */
+const mapState = {sel:null};
+const MAP_NOTE = {
+  S1:'7 個常用中子音，用<b class="c-mid">藍色</b>記。口訣：<span class="th">ไก่ จิก เด็ก ตาย บน ปาก โอ่ง</span>（雞啄死了水缸口上的小孩）。',
+  S2:'9 個常用高子音，用<b class="c-high">橘色</b>記。大多和某個低子音同音。口訣：<span class="th">ผี ฝาก ถุง ข้าว สาร ให้ ฉัน</span>。',
+  S3:'低子音 A，用<b class="c-low">紫色</b>記。每一個都有一個同音的高子音雙胞胎，借用高子音的記憶就好。',
+  S4:'低子音 B：沒有高子音雙胞胎。它們都是可以拉長的音（m、n、ng、y、r、l、w）。',
+  S5:'配對母音一長一短，用 <span class="th">อ</span> 搭配，母音保持原音。多一筆、多一條尾巴是長音；外框母音加 ะ 是短音。',
+  S6:'不配對母音只有 4 個：<span class="th">ใ ไ</span> 都念 ai；<span class="th">เอา</span> 念 ao；<span class="th">อำ</span> 念 am。',
+  S7:`字尾只有 8 個音，很多字母放在字尾會合併成同一個音。-k -t -p 會截斷（死音）；-n -m -ng -i -o 可以拉長（活音）。<br>永遠不會出現在字尾的字母：<span class="th">${NEVER_FINAL}</span>。`,
+  T1:'泰語有 5 個聲調。先只用耳朵分辨，對照國語：中平≈一聲略低、低≈半三聲、降≈四聲、高≈二聲、升≈完整三聲。拼音符號：a 中平、à 低、â 降、á 高、ǎ 升。',
+  T2:'沒有聲調符號、又是<b>活音</b>（長母音或尾音 m n ng i o）時，聲調只看起首子音的類別：<br><span class="c-mid">中子音</span> → 中平調　<span class="c-high">高子音</span> → 升調　<span class="c-low">低子音</span> → 中平調',
+  T3:'<b>死音</b>：短母音結尾，或尾音 k／t／p。<br><span class="c-mid">中子音</span>、<span class="c-high">高子音</span> → 低調<br><span class="c-low">低子音</span>＋短母音 → 高調；<span class="c-low">低子音</span>＋長母音 → 降調',
+  T4:'聲調符號要和子音類別一起看：<br><span class="c-mid">中子音</span>：่ 低、้ 降、๊ 高、๋ 升<br><span class="c-high">高子音</span>：่ 低、้ 降<br><span class="c-low">低子音</span>：่ 降、้ 高（比中子音升一級）',
+  T5:'綜合推理：類別 → 活音或死音 → 聲調符號 → 聲調。並用只差一個聲調或長短的字練聽力。'
+};
 function mapTile(id,selId){
   const c=ITEM[id];
   return `<button class="lt ${c.freq?'':'rare'} ${selId===id?'sel':''}" data-pick="${id}" aria-label="${c.ch} ${c.r||'不發音'}">
-    <span class="lp c-${c.cls}">${c.ch}</span><span class="sg">${c.ch}</span><small>${c.r||'∅'}${c.freq?'':'・少用'}</small></button>`;
+    <span class="lp c-${c.cls}">${c.ch}</span><span class="sg sign">${c.ch}</span><small>${c.memo&&c.memo[3]?c.memo[3]+' ':''}${c.r||'∅'}${c.freq?'':'・少用'}</small></button>`;
 }
 function mapDetail(id){
-  const c=ITEM[id]; if(!c) return `<div class="card"><p class="muted">點任何一個字母：會念出聲音，並在這裡顯示細節。上排是課本／手寫字體，下排小字是招牌字體。</p></div>`;
+  const c=ITEM[id];
+  if(!c) return `<div class="card"><p class="muted">點任何一個字母：會念出字母名稱，並在這裡顯示細節。格子裡上方是課本字，下方小字是招牌字。</p></div>`;
   if(c.kind==='v'){
-    const ex=makeSyl(CMAP['ก'],c,'');
-    return `<div class="card"><div class="row"><span class="mid-big c-vowel">${vForm(c)}</span><div class="col" style="gap:2px;flex:1;min-width:0"><b style="font-size:20px">${c.r}</b><span class="small muted">${c.len==='L'?'長母音':c.len==='S'?'短母音':'不配對母音'}・例 <span class="th">${ex.th}</span> ${ex.roman}</span></div>${audioBtn(ex.th)}</div><p class="small">${esc(c.logic)}</p></div>`;
+    return `<div class="card bar-vowel"><div class="row"><span class="mid-big c-vowel">${vForm(c)}</span><div class="col" style="gap:2px;flex:1;min-width:0"><b style="font-size:20px">${c.r}</b><span class="small muted">${vLenTxt(c)}</span></div>${audioBtn(vSay(c))}</div><p class="small">${esc(fixMarks(c.logic))}</p>
+      <button class="btn" data-trace="${esc(vForm(c))}" data-tsay="${esc(vSay(c))}">用手指描寫</button></div>`;
   }
-  const exs = c.freq ? [makeSyl(c,VMAP['v:a-l'],''),makeSyl(c,VMAP['v:a-l'],'่')] : [];
-  return `<div class="card bar-${c.cls}">
-    <div class="duo"><div><div class="mid-big c-${c.cls}">${c.ch}</div><div class="lbl">課本／手寫</div></div><div><div class="mid-big" style="font-family:var(--font-sign)">${c.ch}</div><div class="lbl">招牌字</div></div></div>
+  return `<div class="card bar-${c.cls}">${duo(c)}
     <div class="row"><span class="chip bg-${c.cls}">${CLS[c.cls]}</span><b style="font-size:20px">${c.r||'∅'}</b><span class="small muted" style="flex:1;min-width:0">${esc(c.anchor)}</span>${audioBtn(consSound(c))}</div>
-    <p class="small">${consLogic(c)}</p>${signNote(c)}
-    ${exs.length?`<div class="row small" style="flex-wrap:wrap">${exs.map(s=>`<span><span class="th" style="font-size:22px">${s.th}</span> ${s.roman} ${curve(s.tone)}</span>`).join('')}${audioBtn(exs[0].th)}</div>`:''}
-    ${c.freq?`<button class="btn" data-trace="${c.ch}">用手指描寫</button>`:''}
+    ${memoCard(c)}<p class="small">${consLogic(c)}</p>${signNote(c)}
+    ${c.freq?`<button class="btn" data-trace="${c.ch}" data-tsay="${esc(consSound(c))}">用手指描寫</button>`:''}
   </div>`;
 }
-const MAP_NOTE = {
-  S1:'7 個常用中子音。中子音是聲調的起點。這一階段搭配兩個載體母音：<span class="th">า</span>（aa）和 <span class="th">อ</span>（ɔɔ），例如 <span class="th">กา、ก่า</span>。',
-  S2:'高子音大多和某個低子音同音，只差聲調。高子音＋活音、無符號 ＝ 升調。口訣：<span class="th">ผี ฝาก ถุง ข้าว สาร ให้ ฉัน</span>。',
-  S3:'低子音 A：每一個都有一個同音的高子音雙胞胎，借用高子音的記憶就好。低子音＋活音、無符號 ＝ 中平調。',
-  S4:'低子音 B：沒有高子音雙胞胎。它們都是可以拉長的音（m、n、ng、y、r、l、w），之後放在字尾也正好是活音尾音。',
-  S5:'配對母音一長一短：多一筆、多一條尾巴是長音；外框母音加 ะ 是短音。雙母音是零件拼裝。',
-  S6:'不配對母音只有 4 個，本身是短音，但結尾的 i／o／m 會延續，所以算活音。'
-};
+function toneExamples(sid){
+  let ws=[];
+  if(sid==='T1') ws = ['M','L','F','H','R'].map(k=>wordsOfTone(k)[0]).concat(['M','L','F','H','R'].map(k=>wordsOfTone(k)[1]));
+  else if(sid==='T5') ws = shuffle(TWORDS).slice(0,6);
+  else { const rules=RULE_ITEMS.filter(r=>r.stage===sid).map(r=>r.id); ws = rules.flatMap(r=>TWORDS.filter(w=>ruleOf(w.cls,w.kind,w.mark)===r).slice(0,2)); }
+  return `<div class="col" style="gap:6px">${ws.map(w=>`<div class="exrow"><span class="th" style="font-size:24px;min-width:72px">${w.th}</span><span class="grow">${w.r}・${w.zh}<br><span class="small"><span class="c-${w.cls}">${CLS[w.cls]}</span>・${KIND[w.kind]}${w.mark?'・'+w.mark:''} → ${TONES[w.tone].n}</span></span>${curve(w.tone)}${audioBtn(w.th)}</div>`).join('')}</div>`;
+}
 function mapBody(sid,selId){
   const s=SMAP[sid];
+  if(s.line==='T'){
+    return `<div class="card"><p>${MAP_NOTE[sid]}</p></div><h3 class="muted">例字（點喇叭聽）</h3>${toneExamples(sid)}`;
+  }
+  if(sid==='S7'){
+    return `<p class="small">${MAP_NOTE.S7}</p>${FINALS.map(f=>`<div class="card"><div class="row between"><b style="font-size:22px">${f.show}</b><span class="chip ${f.live?'bg-mid':'bg-high'}">${f.live?'活音':'死音'}</span></div>
+      <div class="th" style="font-size:24px;letter-spacing:4px">${f.letters.map(ch=>`<span class="c-${CMAP[ch].cls}" style="${CMAP[ch].freq?'':'opacity:.45'}">${ch}</span>`).join(' ')}</div>
+      <div class="exrow"><span>${f.ex[3]}</span><span class="th" style="font-size:22px">${f.ex[0]}</span><span class="grow">${f.ex[1]}・${f.ex[2]}</span>${audioBtn(f.ex[0])}</div></div>`).join('')}`;
+  }
   if(sid==='S5'||sid==='S6'){
-    const vs = s.all().map(id=>ITEM[id]);
     const rows = sid==='S5' ? VOW_RAW.map(a=>`<div class="vrow">${['-s','-l'].map(sf=>{ const v=VMAP['v:'+a[0]+sf]; return `<button class="lt ${selId===v.id?'sel':''}" data-pick="${v.id}"><span class="lp c-vowel" style="font-size:26px">${vForm(v)}</span><small>${v.r}・${v.len==='L'?'長':'短'}</small></button>`; }).join('')}</div>`).join('')
-      : `<div class="mapgrid">${vs.map(v=>`<button class="lt ${selId===v.id?'sel':''}" data-pick="${v.id}"><span class="lp c-vowel" style="font-size:26px">${vForm(v)}</span><small>${v.r}</small></button>`).join('')}</div>`;
+      : `<div class="mapgrid">${s.all().map(id=>ITEM[id]).map(v=>`<button class="lt ${selId===v.id?'sel':''}" data-pick="${v.id}"><span class="lp c-vowel" style="font-size:26px">${vForm(v)}</span><small>${v.r}</small></button>`).join('')}</div>`;
     return `<p class="small">${MAP_NOTE[sid]}</p>${mapDetail(selId)}<div class="col" style="gap:8px">${rows}</div>`;
   }
   const ids = s.all();
@@ -986,26 +1147,30 @@ function mapBody(sid,selId){
 function bindMap(sid,inRun,state){
   bindAudio();
   $app.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{
-    state.sel=b.dataset.pick; const it=ITEM[state.sel];
-    say(it.kind==='c'?consSound(it):makeSyl(CMAP['ก'],it,'').th);
+    state.sel=b.dataset.pick; say(itemSound(ITEM[state.sel]));
     inRun?renderMap(sid,true):renderMapPage();
     const t=$app.querySelector('.card'); if(t) t.scrollIntoView({block:'nearest',behavior:'smooth'});
   });
-  $app.querySelectorAll('[data-trace]').forEach(b=>b.onclick=()=>{ const c=CMAP[b.dataset.trace]; traceBack=inRun?{name:'run'}:{name:'map',sid}; go({name:'trace',ch:c.ch,cls:c.cls}); });
+  $app.querySelectorAll('[data-trace]').forEach(b=>b.onclick=()=>{
+    const c=CMAP[b.dataset.trace];
+    traceBack=inRun?{name:'run'}:{name:'map',sid};
+    go({name:'trace',text:b.dataset.trace,cls:c?c.cls:'vowel',say:b.dataset.tsay});
+  });
 }
-const mapState = {sel:null};
 function renderMap(sid,inRun){
   const q = run.steps[run.i]; q.sel = q.sel||null;
-  $app.innerHTML = `${header()}<h2>${SMAP[sid].name}・字母地圖</h2>${mapBody(sid,q.sel)}
+  const s = SMAP[sid];
+  $app.innerHTML = `${header()}<h2>${s.name}・${s.line==='L'?'字母地圖':'規則說明'}</h2>${mapBody(sid,q.sel)}
   <div class="spacer"></div><button class="btn primary" id="go">看完了，開始學</button>`;
   bindQuit(); bindMap(sid,true,q);
   document.getElementById('go').onclick=()=>{ sx(sid).mapSeen=true; next(); };
 }
 function renderMapPage(){
-  const sid = route.sid||'S1';
-  $app.innerHTML = `<div class="row between"><button class="linkbtn" id="back">← 首頁</button><h2>字母地圖</h2><span></span></div>
-  <div class="stagechips">${STAGES.filter(s=>s.line==='L').map(s=>`<button class="pill ${s.id===sid?'on':''}" data-sid="${s.id}">${s.name.replace(/：.*$/,'')}</button>`).join('')}</div>
-  <h2>${SMAP[sid].name}</h2>${mapBody(sid,mapState.sel && ITEM[mapState.sel] && SMAP[sid].all().includes(mapState.sel)?mapState.sel:null)}`;
+  const sid = route.sid||'S1', s=SMAP[sid];
+  const chips = STAGES.filter(x=>x.line===s.line);
+  $app.innerHTML = `<div class="row between"><button class="linkbtn" id="back">← 首頁</button><h2>${s.line==='L'?'字母地圖':'聲調規則'}</h2><span></span></div>
+  <div class="stagechips">${chips.map(x=>`<button class="pill ${x.id===sid?'on':''}" data-sid="${x.id}">${x.line==='T'?x.id+' ':''}${x.name.replace(/：.*$/,'')}</button>`).join('')}</div>
+  <h2>${s.name}</h2>${mapBody(sid,mapState.sel && ITEM[mapState.sel] && s.all && s.all().includes(mapState.sel)?mapState.sel:null)}`;
   document.getElementById('back').onclick=()=>go({name:'home'});
   $app.querySelectorAll('[data-sid]').forEach(b=>b.onclick=()=>{ mapState.sel=null; go({name:'map',sid:b.dataset.sid}); });
   bindMap(sid,false,mapState);
@@ -1023,39 +1188,53 @@ function renderStageIntro(q){
   bindQuit(); document.getElementById('go').onclick=()=>{ sx(q.stage).introSeen=true; next(); };
 }
 function renderIntro(q){
-  const it = ITEM[q.id]; let html='', speak='';
+  const it = ITEM[q.id]; let html='', speak=itemSound(it), trace=null;
   if(it.kind==='c'){
-    speak=consSound(it);
-    const exs=[makeSyl(it,VMAP['v:a-l'],''),makeSyl(it,VMAP['v:a-l'],'่')];
-    html = `<div class="card bar-${it.cls}" style="align-items:center"><span class="chip bg-${it.cls}">${CLS[it.cls]}</span>
-      <div class="duo"><div><div class="big c-${it.cls}">${it.ch}</div><div class="lbl">課本／手寫</div></div><div><div class="mid-big" style="font-family:var(--font-sign)">${it.ch}</div><div class="lbl">招牌字</div></div></div>
-      <div class="row"><span style="font-size:24px;font-weight:700">${it.r||'∅'}</span><span class="muted">${esc(it.anchor)}</span>${audioBtn(speak)}</div>
-      <p class="muted">字母名：<span class="th">${it.ch} ${it.name}</span>（${it.nameZh}）</p></div>
-      ${signNote(it)}
-      <div class="card"><h3 class="muted">記憶邏輯</h3><p>${consLogic(it)}</p>
-        <div class="row small" style="flex-wrap:wrap">搭配載體母音：${exs.map(s=>`<span><span class="th" style="font-size:22px">${s.th}</span> ${s.roman} ${curve(s.tone)}</span>`).join('')}${audioBtn(exs[0].th)}</div></div>
+    trace={text:it.ch,cls:it.cls,say:consSound(it)};
+    html = `<div class="card bar-${it.cls}" style="align-items:center"><span class="chip bg-${it.cls}">${CLS[it.cls]}</span>${duo(it,true)}
+      <div class="row"><span style="font-size:24px;font-weight:700">${it.r||'∅'}</span><span class="muted">${esc(it.anchor)}</span>${audioBtn(speak)}</div></div>
+      <div class="card">${memoCard(it)}<p class="small">${consLogic(it)}</p></div>${signNote(it)}
       <button class="btn" id="tr">用手指描寫一次</button>`;
   } else if(it.kind==='v'){
-    const ex = makeSyl(CMAP['ก'],it,''); speak=ex.th;
+    trace={text:vForm(it),cls:'vowel',say:vSay(it)};
     html = `<div class="card bar-vowel" style="align-items:center"><span class="chip bg-vowel">${it.len==='L'?'長母音':it.len==='S'?'短母音':'不配對母音'}</span><div class="big c-vowel">${vForm(it)}</div>
-      <div class="row"><span style="font-size:24px;font-weight:700">${it.r}</span>${audioBtn(speak)}</div>
-      <p>例：<span class="th" style="font-size:24px">${ex.th}</span> ${ex.roman}</p></div>
-      <div class="card"><h3 class="muted">記憶邏輯</h3><p>${esc(it.logic)}</p>${it.pair?`<p>配對：<span class="th" style="font-size:22px">${vForm(VMAP[it.pair])}</span> ${VMAP[it.pair].r}（${VMAP[it.pair].len==='L'?'長':'短'}）</p>`:''}</div>`;
+      <div class="row"><span style="font-size:24px;font-weight:700">${it.r}</span><span class="small muted">念作 <span class="th">${vSay(it)}</span></span>${audioBtn(speak)}</div></div>
+      <div class="card"><h3 class="muted">記憶邏輯</h3><p>${esc(fixMarks(it.logic))}</p>${it.pair?`<p>配對：<span class="th" style="font-size:22px">${vForm(VMAP[it.pair])}</span> ${VMAP[it.pair].r}（${VMAP[it.pair].len==='L'?'長':'短'}）</p>`:''}
+      <p class="small muted">用 อ 搭配：อ 不發音，母音保持原音。描寫時注意母音寫在 อ 的哪個位置。</p></div>
+      <button class="btn" id="tr">用手指描寫一次</button>`;
+  } else if(it.kind==='f'){
+    html = `<div class="card" style="align-items:center"><span class="chip ${it.live?'bg-mid':'bg-high'}">${it.live?'活音尾音':'死音尾音'}</span><div class="big" style="font-family:var(--font-ui)">${it.show}</div>
+      <div class="th" style="font-size:28px;letter-spacing:4px">${it.letters.filter(ch=>CMAP[ch].freq).map(ch=>`<span class="c-${CMAP[ch].cls}">${ch}</span>`).join(' ')}</div>
+      <p class="small muted">這些字母放在字尾，都念 ${it.show}</p></div>
+      <div class="card"><div class="exrow"><span class="emo">${it.ex[3]}</span><span class="th" style="font-size:26px">${it.ex[0]}</span><span class="grow">${it.ex[1]}・${it.ex[2]}</span>${audioBtn(it.ex[0])}</div>
+      <p class="small">${it.live?'活音可以拉長唱下去。':'死音會被截斷，聲音收住、不爆破。'}</p></div>`;
+  } else if(it.kind==='tn'){
+    const ws=wordsOfTone(it.tone).slice(0,3);
+    html = `<div class="card" style="align-items:center"><span class="small muted">聲調</span><h2 style="font-size:28px">${TONES[it.tone].n}</h2>${curve(it.tone).replace('width="28" height="18"','width="84" height="54"')}
+      <p>${TONES[it.tone].hint}</p></div>
+      <div class="col" style="gap:6px">${ws.map(w=>`<div class="exrow"><span class="th" style="font-size:24px;min-width:72px">${w.th}</span><span class="grow">${w.r}・${w.zh}</span>${audioBtn(w.th)}</div>`).join('')}</div>
+      <p class="small muted">每個字都聽幾次，注意聲音的高低形狀。</p>`;
+    speak = ws[0].th;
+  } else if(it.kind==='tr'){
+    const ws=TWORDS.filter(w=>ruleOf(w.cls,w.kind,w.mark)===it.id).slice(0,3);
+    html = `<div class="card"><span class="small muted">聲調規則</span><h2>${esc(it.text)}</h2></div>
+      ${ws.length?`<div class="col" style="gap:6px">${ws.map(w=>`<div class="exrow"><span class="th" style="font-size:24px;min-width:72px">${w.th}</span><span class="grow">${w.r}・${w.zh}<br><span class="small">${explainRule(w).split('<br>')[0]}</span></span>${audioBtn(w.th)}</div>`).join('')}</div>`:`<div class="card"><p>${MAP_NOTE.T5}</p></div>`}`;
+    speak = ws[0]?ws[0].th:'';
   } else if(it.kind==='p'){
     html = `<div class="card"><h2>最小差異：只差一點，意思完全不同</h2>
       <div class="row between"><div class="col" style="gap:2px"><span class="mid-big">${it.a[0]}</span><span>${it.a[1]}・${it.a[2]}</span></div>${audioBtn(it.a[0])}</div>
       <div class="row between"><div class="col" style="gap:2px"><span class="mid-big">${it.b[0]}</span><span>${it.b[1]}・${it.b[2]}</span></div>${audioBtn(it.b[0])}</div>
       <p class="small muted">兩個都聽幾次，注意聲調的高低形狀。</p></div>`;
+    speak='';
   } else if(it.kind==='w'){
-    speak=it.th;
     html = `<div class="card" style="align-items:center"><span class="small muted">新單字</span><div class="mid-big">${esc(it.th)}</div>
       <div class="row"><span style="font-size:20px;font-weight:700">${esc(it.r)}</span>${audioBtn(speak)}</div><p>${esc(it.zh)}</p></div>
       <p class="small muted">先聽兩次，跟著在心裡念。</p>`;
   }
-  $app.innerHTML = `${header()}${q.relearn?'<div class="note">今天考試答錯的，再看一次邏輯。</div>':''}${html}<div class="spacer"></div><button class="btn primary" id="go">記住了，開始練習</button>`;
+  $app.innerHTML = `${header()}${q.relearn?'<div class="note">今天考試答錯的，再看一次。</div>':''}${html}<div class="spacer"></div><button class="btn primary" id="go">記住了，開始練習</button>`;
   bindQuit(); bindAudio();
   if(speak && !quiet()) setTimeout(()=>say(speak),250);
-  const tr=document.getElementById('tr'); if(tr) tr.onclick=()=>{ traceBack={name:'run'}; go({name:'trace',ch:it.ch,cls:it.cls}); };
+  const tr=document.getElementById('tr'); if(tr && trace) tr.onclick=()=>{ traceBack={name:'run'}; go(Object.assign({name:'trace'},trace)); };
   document.getElementById('go').onclick=()=>{
     const s=st(q.id), d=dayRec();
     if(s.seen<=0) s.seen=0.5;
@@ -1077,8 +1256,8 @@ function renderRecall(q){
   q.rev = q.rev||{};
   const row = id => {
     const it=ITEM[id], open=!!q.rev[id];
-    const face = it.kind==='c'?`<span class="t c-${it.cls}">${it.ch}</span>`:it.kind==='v'?`<span class="t c-vowel">${vForm(it)}</span>`:`<span class="t" style="font-size:22px">${esc(it.th)}</span>`;
-    const ans = it.kind==='c'?`<b>${it.r||'不發音'}</b>・${CLS[it.cls]}`:it.kind==='v'?`<b>${it.r}</b>・${it.len==='L'?'長':it.len==='S'?'短':'不配對'}`:`<b>${esc(it.r)}</b>・${esc(it.zh)}`;
+    const face = it.kind==='c'?`<span class="t c-${it.cls}">${it.ch}</span>`:it.kind==='v'?`<span class="t c-vowel">${vForm(it)}</span>`:it.kind==='f'?`<span class="t" style="font-size:20px">${it.letters.filter(ch=>CMAP[ch].freq).slice(0,3).join(' ')}</span>`:`<span class="t" style="font-size:22px">${esc(it.th)}</span>`;
+    const ans = it.kind==='c'?`<b>${it.r||'不發音'}</b>・${CLS[it.cls]}・${memoLine(it)}`:it.kind==='v'?`<b>${it.r}</b>・${vLenTxt(it)}`:it.kind==='f'?`字尾念 <b>${it.show}</b>・${it.live?'活音':'死音'}`:`<b>${esc(it.r)}</b>・${esc(it.zh)}`;
     return `<button class="recall" data-rv="${id}">${face}<span class="ans">${open?ans:'<span class="muted">先在心裡說出讀音，再點開對答案</span>'}</span></button>`;
   };
   $app.innerHTML = `${header()}<h2>睡前回想</h2><p class="small muted">不計分。看字、在心裡說出讀音，再點開確認。這一步會讓大腦知道「這些要記住」。</p>
@@ -1086,8 +1265,8 @@ function renderRecall(q){
   <div class="spacer"></div><button class="btn primary" id="go">回想完了，晚安</button>`;
   bindQuit();
   $app.querySelectorAll('[data-rv]').forEach(b=>b.onclick=()=>{
-    const id=b.dataset.rv, it=ITEM[id]; q.rev[id]=true;
-    if(!quiet()) say(it.kind==='c'?consSound(it):it.kind==='v'?makeSyl(CMAP['ก'],it,'').th:it.th);
+    const id=b.dataset.rv; q.rev[id]=true;
+    if(!quiet()) say(itemSound(ITEM[id]));
     renderRecall(q);
   });
   document.getElementById('go').onclick=()=>{ dayRec().recallDone=true; next(); };
@@ -1096,7 +1275,7 @@ function renderRecall(q){
 /* ---------- 選擇題 ---------- */
 function renderChoice(q){
   if(quiet() && q.needsAudio && !q.unlocked){
-    $app.innerHTML = `${header()}<h2>${q.prompt}</h2>${quietGate(q)}`;
+    $app.innerHTML = `${header()}<h2>${q.prompt}</h2>${quietGate()}`;
     bindQuit(); bindQuietGate(q,()=>renderChoice(q)); return;
   }
   $app.innerHTML = `${header()}
@@ -1114,7 +1293,7 @@ function renderChoice(q){
     $app.querySelectorAll('.opt').forEach(x=>{ if(x.dataset.k===q.ans) x.classList.add('right'); });
     if(!ok) b.classList.add('wrong');
     grade(q,ok);
-    feedback(ok,q.explain,q.audio);
+    feedback(ok,q.explain,q.audio||q.after);
   });
 }
 function grade(q,ok){
@@ -1138,9 +1317,9 @@ function feedback(ok,explain,audio){
   nx.scrollIntoView({block:'end',behavior:'smooth'});
 }
 
-/* ---------- 推理題 ---------- */
+/* ---------- 推理題（聲調線） ---------- */
 function renderReason(q){
-  const s=q.syl, st0 = q.state || (q.state={k:0,res:[]});
+  const w=q.w, st0 = q.state || (q.state={k:0,res:[]});
   const showStep = i => {
     const step=q.steps[i], r=st0.res[i]; if(r===undefined) return '';
     const optTxt = step.opts.find(o=>o.key===step.ans).txt;
@@ -1149,7 +1328,7 @@ function renderReason(q){
   const cur = q.steps[st0.k];
   $app.innerHTML = `${header()}
   <h2>推理題：這個字念什麼聲調？</h2>
-  <div class="card" style="align-items:center"><div class="big">${s.th}</div><span class="small muted">練習音節</span></div>
+  <div class="card" style="align-items:center"><div class="big">${w.th}</div><span class="small muted">${w.practice?'練習音節（不是真實單字，不播放聲音）':esc(w.zh)}</span></div>
   <div class="steps">${q.steps.map((_,i)=>showStep(i)).join('')}</div>
   ${cur?`<h3>${cur.q}</h3><div class="opts ${cur.opts.length>3?'':'one'}">${cur.opts.map(o=>`<button class="opt" data-k="${esc(o.key)}"><span style="font-size:16px;font-weight:700">${o.txt}</span></button>`).join('')}</div>`:''}
   <div id="fb"></div><div class="spacer"></div><div id="nx"></div>`;
@@ -1160,31 +1339,28 @@ function renderReason(q){
     const allOk = st0.res.every(r=>r.ok), firstBad = st0.res.findIndex(r=>!r.ok);
     if(!q.graded){
       q.graded=true; run.total++; if(allOk) run.right++;
-      if(run.mode!=='diag'){
-        record(s.c.id,st0.res[0].ok,'reason','class');
-        if(!CARRIER.includes(s.v.id) || lvl(s.v.id)>=1) record(s.v.id,st0.res[1].ok,'reason','length');
-        record('r:tone',st0.res[2].ok&&st0.res[3].ok,'reason','tone');
-      }
+      const cat = !st0.res[0].ok?'class':!st0.res[1].ok?'length':'tone';
+      if(run.mode!=='diag') q.items.forEach(id=>record(id,allOk,'reason',cat));
     }
-    feedback(allOk, `${allOk?'':`邏輯斷在第 ${firstBad+1} 步。<br>`}<span class="th" style="font-size:22px">${s.th}</span> ＝ <b>${s.roman}</b> ${curve(s.tone)}<br>${explainSyl(s)}`, s.th);
+    feedback(allOk, `${allOk?'':`邏輯斷在第 ${firstBad+1} 步。<br>`}<span class="th" style="font-size:22px">${w.th}</span> ＝ <b>${w.r}</b> ${curve(w.tone)}<br>${explainRule(w)}`, w.practice?null:w.th);
   }
 }
 
-/* ---------- 拼裝題 ---------- */
+/* ---------- 拼裝題（聲調線） ---------- */
 function renderSpell(q){
   const s=q.syl; q.pickc=q.pickc||null; q.pickv=q.pickv||null; if(q.pickt===undefined) q.pickt=null;
   const preview = (q.pickc&&q.pickv) ? q.pickv.tpl.replace('C',q.pickc.ch).replace('T',q.pickt||'') : '';
+  const vlabel = v => v.tpl.replace('C','◌').replace('T','');
   $app.innerHTML = `${header()}
   <h2>拼裝題：拼出這個音節</h2>
-  <div class="card" style="align-items:center"><div class="row"><span style="font-size:30px;font-weight:700">${s.roman}</span>${curve(s.tone)}${audioBtn(s.th)}</div>
-  <span class="small muted">${TONES[s.tone].n}・練習音節</span></div>
+  <div class="card" style="align-items:center"><div class="row"><span style="font-size:30px;font-weight:700">${s.r}</span>${curve(s.tone)}</div>
+  <span class="small muted">${TONES[s.tone].n}・練習音節，不播放聲音</span></div>
   <div class="card" style="align-items:center;min-height:90px"><div class="mid-big">${preview||'<span class="muted" style="font-size:16px">選子音、母音、聲調符號</span>'}</div></div>
-  <h3 class="muted">子音</h3><div class="opts">${q.cons.map(c=>`<button class="opt ${q.pickc===c?'sel':''}" data-c="${c.ch}"><span class="t">${c.ch}</span></button>`).join('')}</div>
-  <h3 class="muted">母音</h3><div class="opts">${q.vows.map(v=>`<button class="opt ${q.pickv===v?'sel':''}" data-v="${v.id}"><span class="t">${vForm(v)}</span></button>`).join('')}</div>
+  <h3 class="muted">子音</h3><div class="opts">${q.cons.map(c=>`<button class="opt ${q.pickc===c?'sel':''}" data-c="${c.ch}"><span class="t c-${c.cls}">${c.ch}</span></button>`).join('')}</div>
+  <h3 class="muted">母音</h3><div class="opts">${q.vows.map(v=>`<button class="opt ${q.pickv===v?'sel':''}" data-v="${v.id}"><span class="t">${vlabel(v)}</span></button>`).join('')}</div>
   <h3 class="muted">聲調符號</h3><div class="opts" style="grid-template-columns:repeat(5,minmax(0,1fr))">${q.marks.map(m=>`<button class="opt ${q.pickt===m?'sel':''}" data-t="${m||'none'}" aria-label="${TM[m]}"><span class="t c-tone">${m?'◌'+m:'無'}</span></button>`).join('')}</div>
   <div id="fb"></div><div class="spacer"></div><div id="nx">${q.done?'':`<button class="btn primary" id="chk" ${q.pickc&&q.pickv&&q.pickt!==null?'':'disabled'}>檢查</button>`}</div>`;
-  bindQuit(); bindAudio();
-  if(!q.played && !quiet()){ q.played=true; setTimeout(()=>say(s.th),250); }
+  bindQuit();
   if(q.done) return;
   $app.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{ q.pickc=CMAP[b.dataset.c]; renderSpell(q); });
   $app.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{ q.pickv=VMAP[b.dataset.v]; renderSpell(q); });
@@ -1192,16 +1368,12 @@ function renderSpell(q){
   document.getElementById('chk').onclick=()=>{
     q.done=true;
     let ok=false, mine=null;
-    if(toneMarksFor(q.pickc,q.pickv).includes(q.pickt)){ mine = makeSyl(q.pickc,q.pickv,q.pickt); ok = mine.roman===s.roman; }
+    if(toneMarksFor(q.pickc,q.pickv).includes(q.pickt)){ mine = makeSyl(q.pickc,q.pickv,q.pickt); ok = mine.r===s.r; }
     renderSpell(q);
     run.total++; if(ok) run.right++;
-    const cOk = ok || (q.pickc.r===s.c.r && q.pickc.cls===s.c.cls);
-    const vOk = ok || (q.pickv.r===s.v.r && q.pickv.len===s.v.len);
-    record(s.c.id,cOk,'spell','class');
-    if(!CARRIER.includes(s.v.id) || lvl(s.v.id)>=1) record(s.v.id,vOk,'spell','length');
-    record('r:tone',ok||!cOk||!vOk,'spell','tone');
-    const mineTxt = !ok ? (mine?`你拼的 <span class="th" style="font-size:20px">${mine.th}</span> 會念 ${mine.roman}（${TONES[mine.tone].n}）。<br>`:`短母音（死音）通常不加聲調符號；${CLS[q.pickc.cls]}${q.pickc.cls!=='mid'?'只用 ่ 和 ้':''}。<br>`) : '';
-    feedback(ok, `${mineTxt}正確答案：<span class="th" style="font-size:22px">${s.th}</span><br>${explainSyl(s)}`, s.th);
+    q.items.forEach(id=>record(id,ok,'spell','tone'));
+    const mineTxt = !ok ? (mine?`你拼的 <span class="th" style="font-size:20px">${mine.th}</span> 會念 ${mine.r}（${TONES[mine.tone].n}）。<br>`:`短母音（死音）通常不加聲調符號；${CLS[q.pickc.cls]}${q.pickc.cls!=='mid'?'只用 ่ 和 ้':''}。<br>`) : '';
+    feedback(ok, `${mineTxt}正確答案：<span class="th" style="font-size:22px">${s.th}</span><br>${explainRule(s)}`, null);
   };
 }
 
@@ -1210,7 +1382,7 @@ function wordRoman(t){ const w=WMAP[t]; return w?w.r:''; }
 function wordKnown(t){ const cons=[...t].filter(ch=>CMAP[ch]); return cons.length>0 && cons.every(ch=>lvl('c:'+ch)>=2); }
 function renderDrill(q){
   if(q.heard && quiet() && !q.unlocked && !q.done){
-    $app.innerHTML = `${header()}<span class="pill" style="align-self:flex-start">${DT[q.dtype]}</span><h2>${esc(q.instr)}</h2>${quietGate(q)}`;
+    $app.innerHTML = `${header()}<span class="pill" style="align-self:flex-start">${DT[q.dtype]}</span><h2>${esc(q.instr)}</h2>${quietGate()}`;
     bindQuit(); bindQuietGate(q,()=>renderDrill(q)); return;
   }
   if(!q.bank){
@@ -1258,8 +1430,8 @@ function renderDone(){
     else if(run.kind==='recall'){ title='今晚完成，晚安'; body='明天早上或中午記得來考試。'; }
     else { d.rounds++; }
     if(run.total) body = `答對 ${run.right} / ${run.total}（${pct}%）`;
-    const cur = currentStage('L');
-    if(cur && testReady(cur.id)) extra = `<div class="note">「${cur.name}」的常用字母都熟悉了，可以參加階段考。</div>`;
+    const ready = STAGES.filter(s=>stageOpen(s.id) && !stagePassed(s.id) && testReady(s.id));
+    if(ready.length) extra = `<div class="note">${ready.map(s=>`「${s.name}」`).join('、')}的內容都熟悉了，可以參加階段考。</div>`;
     if(run.kind!=='recall') extra += `<p class="small muted">今晚已學 ${Math.round(d.night/60)} / 30 分。${(d.night||0)>=25*60&&!d.recallDone?'最後做一次睡前回想就完成了。':''}</p>`;
   }
   if(run.mode==='test'){
@@ -1270,11 +1442,13 @@ function renderDone(){
   }
   if(run.mode==='stagetest'){
     const pass = pct>=80, sid=run.stage;
+    const before = new Set(openStages().map(s=>s.id));
     sx(sid).best=Math.max(sx(sid).best||0,pct);
     if(pass) sx(sid).passed=true;
+    const opened = openStages().filter(s=>!before.has(s.id));
     title = pass?`「${SMAP[sid].name}」過關！`:`「${SMAP[sid].name}」還差一點`;
     body = `答對 ${run.right} / ${run.total}（${pct}%）。過關標準 80%。`;
-    extra = pass ? (nextStage(sid)?`<div class="note">已解鎖「${nextStage(sid).name}」，今晚就會從它的字母地圖開始。</div>`:'')
+    extra = pass ? (opened.length?`<div class="note">已解鎖${opened.map(s=>`「${LINES[s.line]}・${s.name}」`).join('、')}。</div>`:'')
                  : `<div class="note">錯的題目今晚重學。明天可以再考，題目會重新組合。</div>`;
   }
   if(run.mode==='diag'){
@@ -1292,12 +1466,12 @@ function renderDone(){
   document.getElementById('home').onclick=()=>{ run=null; go({name:'home'}); };
 }
 
-/* ---------- 手寫描寫 ---------- */
+/* ---------- 手寫描寫（子音與母音） ---------- */
 let traceBack = {name:'home'};
 function renderTrace(){
-  const {ch,cls}=route;
-  $app.innerHTML = `<div class="row between"><button class="linkbtn" id="back">← 返回</button><h2>描寫 <span class="th c-${cls}">${ch}</span></h2>${audioBtn(consSound(CMAP[ch]))}</div>
-  <p class="small muted">從頭圈（小圓圈）起筆，沿著淡色字形描。完成後會疊上標準字形讓你比對。描寫只練課本字體。</p>
+  const text=route.text, cls=route.cls||'vowel';
+  $app.innerHTML = `<div class="row between"><button class="linkbtn" id="back">← 返回</button><h2>描寫 <span class="th c-${cls}">${esc(text)}</span></h2>${audioBtn(route.say)}</div>
+  <p class="small muted">${cls==='vowel'?'母音用 อ 當底字：注意母音寫在 อ 的上、下、前、後哪個位置。':'從頭圈（小圓圈）起筆，沿著淡色字形描。'}完成後會疊上標準字形讓你比對。描寫只練課本字體。</p>
   <canvas class="trace" id="cv" width="640" height="640" aria-label="描寫區"></canvas>
   <div id="fb"></div>
   <div class="btns"><button class="btn" id="clr">清除重寫</button><button class="btn primary" id="cmp">完成，比對</button></div>
@@ -1310,10 +1484,11 @@ function renderTrace(){
   const drawGuide = strong => {
     ctx.clearRect(0,0,640,640);
     ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.font = '600 440px "Noto Sans Thai Looped","Noto Sans Thai",Tahoma,sans-serif';
+    let size=440; ctx.font = `600 ${size}px "Noto Sans Thai Looped",Tahoma,sans-serif`;
+    const w=ctx.measureText(text).width; if(w>560){ size=Math.floor(size*560/w); ctx.font = `600 ${size}px "Noto Sans Thai Looped",Tahoma,sans-serif`; }
     ctx.fillStyle = strong?col:soft; ctx.globalAlpha = strong?0.35:1;
-    ctx.fillText(ch,320,340); ctx.globalAlpha=1;
-    ctx.lineCap='round'; ctx.lineJoin='round'; ctx.lineWidth=22; ctx.strokeStyle=strong?fg:col;
+    ctx.fillText(text,320,340); ctx.globalAlpha=1;
+    ctx.lineCap='round'; ctx.lineJoin='round'; ctx.lineWidth=size>300?22:16; ctx.strokeStyle=strong?fg:col;
     strokes.forEach(s=>{ ctx.beginPath(); s.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.stroke(); });
   };
   const pos = e => { const r=cv.getBoundingClientRect(); return [(e.clientX-r.left)/r.width*640,(e.clientY-r.top)/r.height*640]; };
@@ -1326,7 +1501,7 @@ function renderTrace(){
   document.getElementById('clr').onclick=()=>{ strokes=[]; compared=false; document.getElementById('fb').innerHTML=''; drawGuide(false); };
   document.getElementById('cmp').onclick=()=>{
     compared=true; drawGuide(true);
-    document.getElementById('fb').innerHTML = `<div class="fb good"><span class="ttl">比對看看</span><div>彩色是標準字形，深色是你寫的。頭圈的位置和方向對了嗎？手機無法自動評分，請自己判斷，不像就清除重寫。</div></div>`;
+    document.getElementById('fb').innerHTML = `<div class="fb good"><span class="ttl">比對看看</span><div>彩色是標準字形，深色是你寫的。位置和方向對了嗎？手機無法自動評分，請自己判斷，不像就清除重寫。</div></div>`;
   };
   const back=()=>go(traceBack);
   document.getElementById('back').onclick=back; document.getElementById('done').onclick=back;
@@ -1373,7 +1548,8 @@ function renderSettings(){
     <div id="impmsg"></div></div>
   <div class="card"><h3>安裝到主畫面</h3><p class="small">用 Chrome 開啟 → 右上角選單 → 「安裝應用程式」或「加到主畫面」。安裝後沒有網路也能練習。</p></div>
   <div class="card"><h3>重新診斷</h3><p class="small muted">保留現有進度，再做一次程度診斷。</p><button class="btn" id="rediag">重新診斷</button></div>
-  <div class="card"><h3>全部重設</h3><p class="small muted">清除所有學習紀錄，無法復原。</p><button class="btn" id="reset">清除所有進度</button><div id="cf"></div></div>`;
+  <div class="card"><h3>全部重設</h3><p class="small muted">清除所有學習紀錄，無法復原。</p><button class="btn" id="reset">清除所有進度</button><div id="cf"></div></div>
+  <p class="small muted">版本 ${APP_VERSION}</p>`;
   document.getElementById('back').onclick=()=>go({name:'home'});
   document.getElementById('test').onclick=()=>say('สวัสดีครับ');
   document.getElementById('exp').onclick=()=>{ exportProgress(); document.getElementById('impmsg').innerHTML='<p class="small">已匯出，檔案在手機的「下載」資料夾。</p>'; };
@@ -1405,6 +1581,7 @@ function renderSettings(){
   document.addEventListener('visibilitychange',()=>{ if(document.hidden && run){ addTime(); touch(); } else if(run) run.qStart=Date.now(); });
   setInterval(()=>{ if(route.name==='home') document.body.classList.toggle('night', nightActive()); },60000);
 })();
+
 </script>
 </body>
 </html>
